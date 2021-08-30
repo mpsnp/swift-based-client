@@ -1,2 +1,3 @@
-# based-ios
-Ios client for based
+# BasedClient
+
+A description of this package.
