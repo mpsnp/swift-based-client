@@ -6,9 +6,13 @@
 //
 
 import SwiftUI
+import BasedClient
 
 @main
 struct BasicExampleApp: App {
+    
+    let client = Based(config: BasedConfig(url: "wss://localhost:9100"))
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

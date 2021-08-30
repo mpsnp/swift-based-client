@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "based-client-swift",
+    name: "swift-based-client",
     platforms: [
       .iOS(.v13)
     ],
