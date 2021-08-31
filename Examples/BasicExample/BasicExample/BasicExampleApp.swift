@@ -11,7 +11,7 @@ import BasedClient
 @main
 struct BasicExampleApp: App {
     
-    let client = Based(config: BasedConfig(url: "wss://localhost:9100"))
+    let client = Based(config: BasedConfig(url: "ws://localhost:9100"))
     
     var body: some Scene {
         WindowGroup {

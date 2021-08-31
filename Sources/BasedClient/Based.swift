@@ -30,10 +30,6 @@ public final class Based {
     func connect(with url: String) {
         self.connection = connectWebsocket(url)
     }
-    
-//    public connect(url: string | (() => Promise<string>)) {
-//      this.client.connection = connectWebsocket(this.client, url)
-//    }
 //
 //    public disconnect() {
 //      if (this.client.connection) {
