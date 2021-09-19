@@ -32,7 +32,7 @@ class Emitter {
     
     private let lock = DispatchSemaphore(value: 1)
     
-    private var listeners: [String: [Any]] = [:]
+    var listeners: [String: [Any]] = [:]
 
     func emit(type: String) {
         listeners[type]?.forEach {
