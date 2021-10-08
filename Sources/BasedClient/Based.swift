@@ -16,40 +16,116 @@ public struct BasedConfig {
 
 public final class Based {
     
-    private let basedWebSocket: BasedWebSocket
+    let socket: BasedWebSocket
     
-    private var connection: Connection?
+    private let emitter: Emitter
     
-    public required init(config: BasedConfig, ws: BasedWebSocket = BasedWebSocket()) {
+    var subscriptions = Subscriptions()
+    
+    var cache: [UInt64: (value: JSON, checksum: UInt64)] = [:]
+    
+    private var token: String?
+    
+    private var beingAuth = false
+    
+    var subscriptionQueue = [Message]()
+    
+    var queue = [Message]()
+    
+    let queueManager = QueueManager()
+    
+    
+    public required convenience init(config: BasedConfig) {
         defer {
             connect(with: config.url)
         }
-        basedWebSocket = ws
+        self.init()
     }
     
-    func connect(with url: String) {
-        self.connection = connectWebsocket(url)
+    internal init(
+        ws: BasedWebSocket = BasedWebSocket(),
+        emitter: Emitter = Emitter()
+    ) {
+        self.socket = ws
+        self.emitter = emitter
+        self.socket.delegate = self
     }
-//
-//    public disconnect() {
-//      if (this.client.connection) {
-//        this.client.connection.disconnected = true
-//        if (this.client.connection.ws) {
-//          this.client.connection.ws.close()
-//        }
-//        if (this.client.connected) {
-//          this.client.onClose()
-//        }
-//        delete this.client.connection
-//      }
-//      this.client.connected = false
-//    }
+    
+    public func connect(with url: String) {
+        guard let url = URL(string: url) else { return }
+        socket.connect(url: url)
+    }
+
+    public func disconnect() {
+        guard socket.connected else { return }
+        socket.disconnect()
+        onClose()
+    }
 }
 
 extension Based {
-    func connectWebsocket(_ url: String) -> Connection? {
-        guard let url = URL(string: url) else { return nil }
-        basedWebSocket.connect(url: url)
-        return nil
+    func sendToken(token: String?) {
+        beingAuth = true
+        if let token = token {
+            self.token = token
+        } else {
+            cache.forEach { args in
+                let (id , _) = args
+                if subscriptions[id] != nil {
+                    cache.removeValue(forKey: id)
+                }
+            }
+            self.token = nil
+        }
+        if socket.connected {
+            let jsonData = try! JSONEncoder().encode(token != nil ? ["\(RequestType.token)", token] : ["\(RequestType.token)"])
+            socket.send(message: .data(jsonData))
+            socket.idleTimeout()
+            sendAllSubscriptions(reAuth: true)
+        }
     }
+}
+
+extension Based: BasedWebSocketDelegate {
+    
+    func onClose() {
+        stopDrainQueue()
+        removeFromQueue(type: .unsubscribe)
+        removeFromQueue(type: .sendSubscriptionData)
+        emitter.emit(type: "disconnect")
+    }
+    
+    func onReconnect() {
+        emitter.emit(type: "reconnect")
+    }
+    
+    func onOpen() {
+        emitter.emit(type: "connect")
+        sendToken(token: token)
+//        sendAllSubscriptions(this)
+    }
+    
+    func onError(_: Error) {
+        
+    }
+    
+    func onData(data: URLSessionWebSocketTask.Message) {
+        
+    }
+    
+}
+
+
+extension Based {
+    
+    func stopDrainQueue() {
+
+    }
+    
+    func removeFromQueue(type: RequestType) {
+        subscriptionQueue.removeAll { message in
+            message.requestType == type
+        }
+    }
+    
 }

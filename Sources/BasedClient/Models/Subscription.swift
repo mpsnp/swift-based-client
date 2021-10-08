@@ -6,11 +6,11 @@
 //
 
 struct Subscription {
-    let authError: BasedError?
-    let cnt: Int = 0
-//    let query: GenericObject?
+    let error: BasedError?
+    let cnt: UInt64
+    let query: BasedQuery
     let name: String?
-    var subscribers: Dictionary<SubscriptionId, SubscriptionCallback> = [:]
+    var subscribers: Dictionary<String, SubscriptionCallback> = [:]
 }
 
 struct SubscriptionCallback {

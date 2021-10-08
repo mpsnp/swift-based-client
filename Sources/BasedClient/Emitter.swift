@@ -30,8 +30,6 @@ fileprivate class Listener<T> {
 
 class Emitter {
     
-    private let lock = DispatchSemaphore(value: 1)
-    
     var listeners: [String: [Any]] = [:]
 
     func emit(type: String) {
@@ -78,7 +76,7 @@ class Emitter {
         if listeners[type] == nil {
             listeners[type] = []
         }
-        lock.with { listeners[type]?.append(listener) }
+        listeners[type]?.append(listener)
     }
 
     func removeAllListeners() {
@@ -86,15 +84,13 @@ class Emitter {
     }
 
     private func removeListener<T>(_ type: String, _ listener: Listener<T>?) {
-        lock.with {
-            if let listener = listener {
-                listeners[type]?
-                    .removeAll(where: { l in
-                        (l as? Listener<T>) === listener
-                    })
-            } else {
-                listeners.removeValue(forKey: type)
-            }
+        if let listener = listener {
+            listeners[type]?
+                .removeAll(where: { l in
+                    (l as? Listener<T>) === listener
+                })
+        } else {
+            listeners.removeValue(forKey: type)
         }
     }
 
