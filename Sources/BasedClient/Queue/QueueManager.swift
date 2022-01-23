@@ -23,7 +23,7 @@ final class QueueManager {
         cancelQueuedItems()
     }
     
-    func dispatch(item: @escaping ()->Void, cancelable: Bool) {
+    func dispatch(item: @escaping ()->Void, cancelable: Bool = true) {
         if cancelable {
             let dispatchWorkItem = DispatchWorkItem(flags: .barrier, block: item)
             let index = workItems.count

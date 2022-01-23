@@ -8,12 +8,13 @@
 import Foundation
 import AnyCodable
 
-struct FunctionCallMessage: Message {
+struct FunctionCallMessage: SubscriptionMessage {
     var requestType: RequestType { .call }
+    let id: Int
     let name: String
-    var checksum: UInt64?
-    let payload: [String: Any]
-    var codable: [AnyCodable] {
-        [AnyCodable(requestType.rawValue), AnyCodable(name), AnyCodable(checksum), AnyCodable(payload)]
+    let payload: JSON?
+    var checksum: Int?
+    var codable: [AnyEncodable] {
+        [AnyEncodable(requestType.rawValue), AnyEncodable(name), AnyEncodable(id), AnyEncodable(payload?.anyValue)]
     }
 }

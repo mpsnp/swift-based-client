@@ -11,8 +11,8 @@ import AnyCodable
 struct TokenMessage: Message {
     var requestType: RequestType { .token }
     let token: String?
-    var checksum: UInt64?
-    var codable: [AnyCodable] {
-        [AnyCodable(requestType.rawValue), AnyCodable(token), AnyCodable(checksum)]
+    var checksum: Int?
+    var codable: [AnyEncodable] {
+        [AnyEncodable(requestType.rawValue), AnyEncodable(token), AnyEncodable(checksum)]
     }
 }

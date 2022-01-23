@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import AnyCodable
 
 protocol ResponseData {
     var requestType: RequestType { get }
@@ -13,27 +14,21 @@ protocol ResponseData {
 
 struct SubscriptionDiffData: ResponseData {
     var requestType: RequestType { .subscriptionDiff }
-    let id: UInt64
+    let id: Int
     let patchObject: JSON
-    let checksums: (previous: UInt64, current: UInt64)
+    let checksums: (previous: Int, current: Int)
 }
 
-struct SubscriptionData: ResponseData {
+struct SubscriptionData: ResponseData, Decodable {
     var requestType: RequestType { .sendSubscriptionData }
-    let id: UInt64
-    let data: JSON
-    var checksum: UInt64?
+    let id: Int
+    let data: Data
+    var checksum: Int?
     let error: ErrorObject?
 }
 
-struct RequestData: ResponseData {
-    let requestType: RequestType
-    let callbackId: UInt64
-    let payload: JSON
-    let error: ErrorObject?
-}
-
+//[RequestTypes.Token, number[], boolean?]
 struct AuthorizedData: ResponseData {
     var requestType: RequestType { .token }
-    let subscriptionIds: [UInt64]
+    let subscriptionIds: [Int]
 }

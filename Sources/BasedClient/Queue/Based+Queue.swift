@@ -15,16 +15,17 @@ extension Based {
             || message.requestType == .sendSubscriptionData
             || message.requestType == .getSubscription {
             
-            queueManager.dispatch(item: { [weak self] in
-                self?.subscriptionQueue.append(message)
-            }, cancelable: false)
+//            queueManager.dispatch(item: { [weak self] in
+//                self?.subscriptionQueue.append(message)
+//            }, cancelable: false)
+            subscriptionQueue.append(message)
             
         } else {
             
-            queueManager.dispatch(item: { [weak self] in
-                self?.queue.append(message)
-            }, cancelable: false)
-            
+//            queueManager.dispatch(item: { [weak self] in
+//                self?.queue.append(message)
+//            }, cancelable: false)
+            queue.append(message)
         }
         if socket.connected {
             drainQueue()
@@ -41,8 +42,22 @@ extension Based {
             self.queue = []
             self.subscriptionQueue = []
             let json = try! JSONEncoder().encode(messages)
-            self.socket.send(message: .data(json))
+            
+            if let jsonString = String(data: json, encoding: .utf8) {
+                self.socket.send(message: .string(jsonString)) 
+            }
+//            self.socket.send(message: .data(json))
         }, cancelable: true)
         
+    }
+    
+    func stopDrainQueue() {
+        queueManager.cancelQueuedItems()
+    }
+    
+    func removeFromQueue(type: RequestType) {
+        subscriptionQueue.removeAll { message in
+            message.requestType == type
+        }
     }
 }

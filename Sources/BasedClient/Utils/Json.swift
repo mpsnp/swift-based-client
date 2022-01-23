@@ -56,18 +56,45 @@ enum JSON: Codable, CustomStringConvertible {
     }
 
     case string(String)
-    case number(Double) // FIXME: Split Int and Double
+    case number(Double)
     case object([Key: JSON])
     case array([JSON])
     case bool(Bool)
     case null
 
     static func object(_ key: String, _ value: JSON) -> Self {
-        Self.object([Key.init(key): value])
+        .object([Key.init(key): value])
+    }
+    
+    static func object(_ value: [String: JSON]) -> Self {
+        return .object(value.reduce(into: [Key: JSON]()) { partialResult, args in
+            let (key, value) = args
+            partialResult[Key(key)] = value
+        })
     }
     
     static func array(_ ints: Int...) -> Self {
         .array(ints.map { JSON.number(Double($0)) })
+    }
+    
+    static func from(string: String) -> JSON? {
+        guard let data = string.data(using: .utf8) else { return nil }
+        let decoder = JSONDecoder()
+        do {
+            let json = try decoder.decode(JSON.self, from: data)
+            return json
+
+        } catch {
+            return nil
+        }
+    }
+    
+    init(arrayLiteral elements: AnyHashable...) {
+        if let res = try? elements.map(JSON.init) {
+            self = .array(res)
+        } else {
+            self = .null
+        }
     }
     
     init(from decoder: Decoder) throws {
@@ -118,6 +145,10 @@ enum JSON: Codable, CustomStringConvertible {
             var container = encoder.singleValueContainer()
             try container.encodeNil()
         }
+    }
+    
+    func array<T>() -> [T]? {
+        anyValue as? [T]
     }
 
     var objectValue: [String: JSON]? {
@@ -212,8 +243,15 @@ enum JSON: Codable, CustomStringConvertible {
 
 extension JSON {
     init(_ value: Any) throws {
-        if let string = value as? String { self = .string(string) }
-        else if let number = value as? NSNumber { self = .number(number.doubleValue) }
+        if let string = value as? String {
+            self = .string(string)
+        }
+        else if let bool = value as? Bool {
+            self = .bool(bool)
+        }
+        else if let number = value as? NSNumber {
+            self = .number(number.doubleValue)
+        }
         else if let object = value as? [String: Any] {
             var result: [Key: JSON] = [:]
             for (key, subvalue) in object {
@@ -224,7 +262,6 @@ extension JSON {
         else if let array = value as? [Any] {
             self = .array(try array.map(JSON.init))
         }
-        else if let bool = value as? Bool { self = .bool(bool) }
         else {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [],
                                                                           debugDescription: "Cannot encode value"))
@@ -232,9 +269,10 @@ extension JSON {
     }
 }
 
+extension JSON: Equatable {}
+
 extension JSONEncoder {
     func stringEncode<T>(_ value: T) throws -> String where T : Encodable {
-        // JSONEncoder promises to always return UTF-8
         return String(data: try self.encode(value), encoding: .utf8)!
     }
 }

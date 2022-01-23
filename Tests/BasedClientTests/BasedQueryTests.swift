@@ -29,7 +29,7 @@ final class BasedQueryTests: XCTestCase {
         #"""
         {"$id": "root", "id": true, "items": {"name": true, "nonense": {"$default": "yes"}, "$list": {"$find": {"$recursive": true, "$traverse": {"root": "children", "league": {"$first": ["matches", "children"]}, "team": {"$all": ["parents", "children"]}, "$any": true}}}}}
         """#,
-        query.render()
+        query.jsonStringify()
       )
     }
     

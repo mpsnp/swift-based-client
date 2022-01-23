@@ -15,15 +15,15 @@ public enum BasedQuery {
     public enum QueryItem {
         indirect case item(_ name: String, values: [String]? = nil, value: Bool? = nil, items: [QueryItem]? = nil)
         
-        static func field(_ name: String, _ items: QueryItem...) -> Self {
+        public static func field(_ name: String, _ items: QueryItem...) -> Self {
             .item(name, items: items)
         }
         
-        static func field(_ name: String, _ value: Bool) -> Self {
+        public static func field(_ name: String, _ value: Bool) -> Self {
             .item(name, value: value)
         }
         
-        static func field(_ name: String, _ values: String...) -> Self {
+        public static func field(_ name: String, _ values: String...) -> Self {
             .item(name, values: values)
         }
     }

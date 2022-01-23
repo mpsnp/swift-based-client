@@ -11,68 +11,69 @@ import AnyCodable
 // Outgoing data
 
 // 0 = don't send data back if the same checksum but make subscription
-// 2 = allways send data back, make subscription
 // 1 = send data back, do not make a subscription
+// 2 = allways send data back, make subscription
 enum RequestMode: Int, Codable {
-    case send = 0, roundtrip, back
+    case dontSendBack = 0, sendDataBack, sendDataBackWithSubscription
 }
 
 protocol Message {
     var requestType: RequestType { get }
-    var checksum: UInt64? { get set }
-    var codable: [AnyCodable] { get }
+    var checksum: Int? { get set }
+    var codable: [AnyEncodable] { get }
 }
 
 protocol SubscriptionMessage: Message {
-    var subscriptionId: UInt64 { get }
+    var id: Int { get }
 }
 
 struct RequestMessage: Message {
     let requestType: RequestType
-    var checksum: UInt64?
-    let data: AnyCodable
-    var codable: [AnyCodable] {
-        [AnyCodable(requestType.rawValue), AnyCodable(checksum), AnyCodable(data)]
+    let id: Int
+    let payload: JSON?
+    var checksum: Int? = nil
+    var codable: [AnyEncodable] {
+        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(payload?.anyValue), AnyEncodable(checksum)]
     }
 }
 
 struct SubscribeMessage: SubscriptionMessage {
     var requestType: RequestType { .subscription }
-    let subscriptionId: UInt64
-    let query: BasedQuery?
-    var checksum: UInt64?
+    let id: Int
+    let payload: JSON?
+    var checksum: Int?
     var requestMode: RequestMode?
-    let customObservableFunc: String?
-    var codable: [AnyCodable] {
-        [AnyCodable(requestType.rawValue), AnyCodable(subscriptionId), AnyCodable(query?.dictionary()), AnyCodable(checksum), AnyCodable(requestMode), AnyCodable(customObservableFunc)]
+    let functionName: String?
+    var codable: [AnyEncodable] {
+        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(payload?.anyValue), AnyEncodable(checksum), AnyEncodable(requestMode), AnyEncodable(functionName)]
     }
 }
 
 struct SendSubscriptionDataMessage: SubscriptionMessage {
     var requestType: RequestType { .sendSubscriptionData }
-    let subscriptionId: UInt64
-    var checksum: UInt64?
-    var codable: [AnyCodable] {
-        [AnyCodable(requestType.rawValue), AnyCodable(subscriptionId), AnyCodable(checksum)]
+    let id: Int
+    var checksum: Int?
+    var codable: [AnyEncodable] {
+        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(checksum)]
     }
 }
 
 struct SendSubscriptionGetDataMessage: SubscriptionMessage {
     var requestType: RequestType { .getSubscription }
-    let subscriptionId: UInt64
+    let id: Int
     let query: BasedQuery?
-    var checksum: UInt64?
-    let customObservableFunc: String?
-    var codable: [AnyCodable] {
-        [AnyCodable(requestType.rawValue), AnyCodable(subscriptionId), AnyCodable(query?.dictionary()), AnyCodable(checksum), AnyCodable(customObservableFunc)]
+    var checksum: Int?
+    let customObservableFuncName: String?
+    var codable: [AnyEncodable] {
+        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(query?.dictionary()), AnyEncodable(checksum), AnyEncodable(customObservableFuncName)]
     }
 }
 
 struct UnsubscribeMessage: SubscriptionMessage {
     var requestType: RequestType { .unsubscribe }
-    let subscriptionId: UInt64
-    var checksum: UInt64?
-    var codable: [AnyCodable] {
-        [AnyCodable(requestType.rawValue), AnyCodable(subscriptionId), AnyCodable(checksum)]
+    let id: Int
+    var checksum: Int?
+    var codable: [AnyEncodable] {
+        [AnyEncodable(requestType.rawValue), AnyEncodable(id)]
     }
 }

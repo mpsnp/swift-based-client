@@ -6,53 +6,70 @@
 //
 
 import Foundation
+import AnyCodable
 
-public struct BasedConfig {
-    public let url: String
-    public init(url: String) {
-        self.url = url
-    }
-}
 
 public final class Based {
     
-    let socket: BasedWebSocket
+    var config: BasedConfig
     
-    private let emitter: Emitter
+    let decoder = JSONDecoder()
+    
+    let encoder = JSONEncoder()
+    
+    let emitter: Emitter
+    
+    let socket: BasedWebSocket
     
     var subscriptions = Subscriptions()
     
-    var cache: [UInt64: (value: JSON, checksum: UInt64)] = [:]
+    var cache: [Int: (value: Data, checksum: Int)] = [:]
     
-    private var token: String?
+    var token: String?
     
-    private var beingAuth = false
+    var beingAuth = false
     
-    var subscriptionQueue = [Message]()
+    var sendTokenOptions: SendTokenOptions?
+    
+    var subscriptionQueue = [SubscriptionMessage]()
     
     var queue = [Message]()
     
     let queueManager = QueueManager()
     
+    var auth: [AuthFunction] = []
+    
+    typealias RequestId = Int
+    typealias RequestCallbacks = Dictionary<RequestId, RequestCallback>
+    var requestIdCnt: Int = 0
+    var requestCallbacks = RequestCallbacks()
     
     public required convenience init(config: BasedConfig) {
-        defer {
-            connect(with: config.url)
-        }
-        self.init()
+        self.init(config: config, ws: BasedWebSocket(), emitter: Emitter())
     }
     
     internal init(
-        ws: BasedWebSocket = BasedWebSocket(),
-        emitter: Emitter = Emitter()
+        config: BasedConfig,
+        ws: BasedWebSocket,
+        emitter: Emitter
     ) {
+        self.config = config
         self.socket = ws
         self.emitter = emitter
         self.socket.delegate = self
+        Task.init {
+            do {
+                try await connect(with: config.url)
+            }
+            catch { print(error) }
+        }
     }
     
-    public func connect(with url: String) {
-        guard let url = URL(string: url) else { return }
+    deinit {
+        self.socket.disconnect()
+    }
+    
+    public func connect(with url: URL) {
         socket.connect(url: url)
     }
 
@@ -63,28 +80,6 @@ public final class Based {
     }
 }
 
-extension Based {
-    func sendToken(token: String?) {
-        beingAuth = true
-        if let token = token {
-            self.token = token
-        } else {
-            cache.forEach { args in
-                let (id , _) = args
-                if subscriptions[id] != nil {
-                    cache.removeValue(forKey: id)
-                }
-            }
-            self.token = nil
-        }
-        if socket.connected {
-            let jsonData = try! JSONEncoder().encode(token != nil ? ["\(RequestType.token)", token] : ["\(RequestType.token)"])
-            socket.send(message: .data(jsonData))
-            socket.idleTimeout()
-            sendAllSubscriptions(reAuth: true)
-        }
-    }
-}
 
 extension Based: BasedWebSocketDelegate {
     
@@ -101,8 +96,9 @@ extension Based: BasedWebSocketDelegate {
     
     func onOpen() {
         emitter.emit(type: "connect")
-        sendToken(token: token)
-//        sendAllSubscriptions(this)
+        sendToken(token, sendTokenOptions)
+        sendAllSubscriptions()
+        drainQueue()
     }
     
     func onError(_: Error) {
@@ -110,21 +106,57 @@ extension Based: BasedWebSocketDelegate {
     }
     
     func onData(data: URLSessionWebSocketTask.Message) {
-        
-    }
-    
-}
-
-
-extension Based {
-    
-    func stopDrainQueue() {
-
-    }
-    
-    func removeFromQueue(type: RequestType) {
-        subscriptionQueue.removeAll { message in
-            message.requestType == type
+        switch data {
+        case .string(let json):
+            guard
+                let jsonData = json.data(using: .utf8),
+                let dataMessage = try? decoder.decode([AnyCodable].self, from: jsonData)
+            else { return }
+            
+            switch RequestType(rawValue: dataMessage[0].value as? Int ?? -1) {
+            case .some(.token):
+                if let data = dataMessage[1].value as? [Int], dataMessage.count > 1 {
+                    logoutSubscriptions(data)
+                }
+                if let state = dataMessage[2].value as? Bool {
+                    auth.forEach { auth in
+                        auth.resolve(!state)
+                    }
+                }
+                beingAuth = false
+                auth = []
+            case .some(.set), .some(.get), .some(.configuration), .some(.getConfiguration), .some(.call), .some(.delete), .some(.copy), .some(.digest):
+                incomingRequest(dataMessage)
+            case .some(.subscription):
+                //ex: [1,-1725702994954,{\"$isNull\":true},3391353116945]
+                if
+                    let id = dataMessage[1].value as? Int,
+                    let checksum = dataMessage[3].value as? Int,
+                    let jsonData = try? encoder.encode(dataMessage[2]) {
+                        
+                    var error: ErrorObject?
+                    if dataMessage.count > 4 {
+                        error = .init(from: dataMessage[4])
+                    }
+                    
+                    incomingSubscription(SubscriptionData(id: id, data: jsonData, checksum: checksum, error: error))
+                }
+            case .some(.subscriptionDiff):
+                if
+                    let id = dataMessage[1].value as? Int,
+                    let diff = try? JSON(dataMessage[2].value),
+                    let checksums = dataMessage[3].value as? [Int], checksums.count > 1 {
+                    
+                    let previous = checksums[0]
+                    let current = checksums[1]
+                    
+                    incomingSubscriptionDiff(SubscriptionDiffData(id: id, patchObject: diff, checksums: (previous: previous, current: current)))
+                }
+            default:
+                print("no match")
+            }
+            
+        default: break
         }
     }
     
