@@ -1,6 +1,6 @@
 # Based Swift client
 
-This is a port of https://github.com/atelier-saulx/based-core/tree/main/docs an Ios client for the Based data platform.
+This is a port of https://github.com/atelier-saulx/based-core/tree/main/docs, an Ios client for the Based data platform.
 =======
 # Usage
 
