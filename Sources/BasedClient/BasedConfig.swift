@@ -22,7 +22,7 @@ public class BasedConfig {
         env: String? = nil,
         project: String? = nil,
         org: String? = nil,
-        cluster: String = "https://dg194mksjrqfz.cloudfront.net",
+        cluster: String = "https://d3gdtpkyvlxeve.cloudfront.net",
         name: String? = "@based/hub",
         url: String? = nil,
         params: [String: AnyCodable]? = nil
