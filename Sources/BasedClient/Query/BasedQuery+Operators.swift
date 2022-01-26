@@ -45,6 +45,14 @@ extension BasedQuery.QueryItem {
         .item("$language", values: [value])
     }
     
+    public static func `operator`(_ value: String) -> Self {
+        .item("$operator", values: [value])
+    }
+    
+    public static func value(_ value: String) -> Self {
+        .item("$value", values: [value])
+    }
+    
     public static func required(_ values: String...) -> Self {
         .item("$required", values: values)
     }
@@ -59,6 +67,14 @@ extension BasedQuery.QueryItem {
     
     public static func traverse(_ items: QueryItem...) -> Self {
         .item("$traverse", items: items)
+    }
+    
+    public static func filter(_ values: String...) -> Self {
+        .item("$filter", values: values)
+    }
+    
+    public static func filter(_ items: QueryItem...) -> Self {
+        .item("$filter", items: items)
     }
 
     public static func first(_ values: String...) -> Self {
