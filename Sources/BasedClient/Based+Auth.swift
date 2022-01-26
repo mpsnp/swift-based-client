@@ -13,6 +13,9 @@ struct AuthFunction {
 
 extension Based {
     
+    /**
+     
+     */
     public func auth(token: String?, options: SendTokenOptions? = nil) async -> Any? {
         await withCheckedContinuation { [weak self] continuation in
             auth.append(AuthFunction(resolve: { continuation.resume(returning: $0) }))
@@ -29,6 +32,12 @@ extension Based {
      
      */
     public func auth(token: String?, options: SendTokenOptions? = nil) {
-        
+        if let token = token {
+            sendToken(token, options)
+        } else {
+            sendToken()
+        }
+        emitter.emit(type: "auth", token)
     }
 }
+
