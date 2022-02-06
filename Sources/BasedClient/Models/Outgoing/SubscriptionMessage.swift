@@ -21,11 +21,10 @@ protocol Message {
     var requestType: RequestType { get }
     var checksum: Int? { get set }
     var codable: [AnyEncodable] { get }
-}
-
-protocol SubscriptionMessage: Message {
     var id: Int { get }
 }
+
+protocol SubscriptionMessage: Message {}
 
 struct RequestMessage: Message {
     let requestType: RequestType

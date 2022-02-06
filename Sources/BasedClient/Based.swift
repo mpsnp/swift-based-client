@@ -25,17 +25,15 @@ public final class Based {
     
     var cache: [Int: (value: Data, checksum: Int)] = [:]
     
-    var token: String?
+    var token: String? = "token"
     
     var beingAuth = false
     
     var sendTokenOptions: SendTokenOptions?
     
-    var subscriptionQueue = [SubscriptionMessage]()
+    var messageManager: MessageManager
     
-    var queue = [Message]()
-    
-    let queueManager = QueueManager()
+    var messages: Messages
     
     var auth: [AuthFunction] = []
     
@@ -45,17 +43,20 @@ public final class Based {
     var requestCallbacks = RequestCallbacks()
     
     public required convenience init(config: BasedConfig) {
-        self.init(config: config, ws: BasedWebSocket(), emitter: Emitter())
+        self.init(config: config, ws: BasedWebSocket(), emitter: Emitter(), messages: Messages())
     }
     
     internal init(
         config: BasedConfig,
         ws: BasedWebSocket,
-        emitter: Emitter
+        emitter: Emitter,
+        messages: Messages
     ) {
         self.config = config
         self.socket = ws
         self.emitter = emitter
+        self.messages = messages
+        messageManager = MessageManager(messages: messages, socket: ws)
         self.socket.delegate = self
         Task.init {
             do {
@@ -84,9 +85,12 @@ public final class Based {
 extension Based: BasedWebSocketDelegate {
     
     func onClose() {
-        stopDrainQueue()
-        removeFromQueue(type: .unsubscribe)
-        removeFromQueue(type: .sendSubscriptionData)
+//        stopDrainQueue()
+        Task {
+            await messageManager.cancelAll()
+            await messages.removeSubscriptionMessages(with: .unsubscribe)
+            await messages.removeSubscriptionMessages(with: .sendSubscriptionData)
+        }
         emitter.emit(type: "disconnect")
     }
     
@@ -97,13 +101,15 @@ extension Based: BasedWebSocketDelegate {
     func onOpen() {
         emitter.emit(type: "connect")
         sendToken(token, sendTokenOptions)
-        sendAllSubscriptions()
-        drainQueue()
-    }
-    
-    func onError(_: Error) {
+        Task {
+            await sendAllSubscriptions()
+            await messageManager.sendAllMessages()
+        }
+//        drainQueue()
         
     }
+    
+    func onError(_: Error) {}
     
     func onData(data: URLSessionWebSocketTask.Message) {
         switch data {

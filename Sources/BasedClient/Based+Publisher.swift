@@ -29,9 +29,11 @@ extension Based {
             subscriber: S
         ) where S.Input == Output, S.Failure == Failure {
             
-            let subscription = DataSubscription(type: type, based: based, subscriber: subscriber)
+            Task {
+                let subscription = await DataSubscription(type: type, based: based, subscriber: subscriber)
         
-            subscriber.receive(subscription: subscription)
+                subscriber.receive(subscription: subscription)
+            }
         }
     }
     
@@ -48,7 +50,7 @@ extension Based {
         private let errorCallback: ErrorCallback
         private let ids: (subscriptionId: SubscriptionId, subscriberId: SubscriptionId)
         
-        init(type: SubscriptionType, based: Based, subscriber: S) {
+        init(type: SubscriptionType, based: Based, subscriber: S) async {
             self.based = based
             self.type = type
             self.subscriptionId = type.generateSubscriptionId()
@@ -88,13 +90,20 @@ extension Based {
                 subscriber.receive(completion: Subscribers.Completion.failure(error))
             }
             
-            ids = based.addSubscriber(payload: payload, onData: dataCallback, onInitial: initialCallback, onError: errorCallback, subscriptionId: subscriptionId, name: name)
+            ids = await based.addSubscriber(
+                payload: payload,
+                onData: dataCallback,
+                onInitial: initialCallback,
+                onError: errorCallback,
+                subscriptionId: subscriptionId,
+                name: name
+            )
         }
         
         func request(_ demand: Subscribers.Demand) {}
         
         func cancel() {
-            based?.removeSubscriber(subscriptionId: ids.subscriptionId, subscriberId: ids.subscriberId)
+            Task { await based?.removeSubscriber(subscriptionId: ids.subscriptionId, subscriberId: ids.subscriberId) }
             subscriber = nil
             based = nil
         }

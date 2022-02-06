@@ -29,9 +29,9 @@ extension Based {
         requestCallbacks[id] = cb
 
         if (type == .call) {
-          addToQueue(message: FunctionCallMessage(id: id, name: name, payload: payload))
+            addToMessages(FunctionCallMessage(id: id, name: name, payload: payload))
         } else {
-          addToQueue(message: RequestMessage(requestType: type, id: id, payload: payload))
+            addToMessages(RequestMessage(requestType: type, id: id, payload: payload))
         }
     }
     

@@ -9,6 +9,7 @@ import Foundation
 import AnyCodable
 
 struct TokenMessage: Message {
+    var id: Int
     var requestType: RequestType { .token }
     let token: String?
     var checksum: Int?

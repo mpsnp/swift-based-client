@@ -15,7 +15,15 @@ protocol BasedWebSocketDelegate: AnyObject {
     func onClose()
 }
 
-final class BasedWebSocket: NSObject {
+protocol WebSocket {
+    func connect(url: URL, reconnect: Bool)
+    func disconnect()
+    func send(message: URLSessionWebSocketTask.Message)
+    func idleTimeout()
+    var connected: Bool { get set }
+}
+
+final class BasedWebSocket: NSObject, WebSocket {
     
     weak var delegate: BasedWebSocketDelegate?
     
@@ -26,12 +34,7 @@ final class BasedWebSocket: NSObject {
     private var timer: DispatchSourceTimer?
     private let timerQueue = DispatchQueue(label: "based.socker.timer", qos: .background)
     
-    
-    public var connected = false {
-        didSet {
-            
-        }
-    }
+    public var connected = false
     
     override init() {
         super.init()
@@ -72,7 +75,7 @@ final class BasedWebSocket: NSObject {
     }
     
     //
-    func listen() {
+    private func listen() {
         socket?.receive { [weak self] (result) in
             guard let self = self else { return }
             switch result {

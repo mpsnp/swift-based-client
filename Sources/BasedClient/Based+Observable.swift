@@ -7,7 +7,6 @@
 
 import AnyCodable
 
-
 extension Based {
     public func observable(query: Query) -> Observable {
         return Observable(query: query, based: self)
@@ -18,7 +17,7 @@ extension Based {
     }
 }
 
-public struct Subscription {
+public class Subscription {
     private let based: Based
     private let subscriberId: SubscriberId
     private let subscriptionId: SubscriptionId
@@ -30,9 +29,9 @@ public struct Subscription {
         self.based = based
     }
 
-    mutating func unsubscribe() {
+    func unsubscribe() {
         self.closed = true
-        based.removeSubscriber(subscriptionId: subscriptionId, subscriberId: subscriberId)
+        Task { await based.removeSubscriber(subscriptionId: subscriptionId, subscriberId: subscriberId) }
     }
 }
 
@@ -60,7 +59,7 @@ public class Observable {
     public func subscribe(
         onNext: @escaping DataCallback,
         onError: @escaping ErrorCallback
-    ) -> Subscription {
+    ) async -> Subscription {
         var payload: JSON = JSON.null
         var name: String? = nil
         switch type {
@@ -74,7 +73,7 @@ public class Observable {
                 payload = p
             }
         }
-        let ids = based.addSubscriber(
+        let ids = await based.addSubscriber(
             payload: payload,
             onData: onNext,
             onInitial: { error, subscriptionId, subscriberId, data, isAuthError in

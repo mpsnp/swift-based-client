@@ -22,7 +22,7 @@ public typealias ErrorCallback = (_ error: BasedError) -> ()
 
 typealias DigestOptions = String
 
-enum RequestType: Int, Codable, CustomStringConvertible {
+enum RequestType: Int, Codable, CustomStringConvertible, CaseIterable {
     case subscription = 1,
     subscriptionDiff = 2,
     sendSubscriptionData = 3,

@@ -34,7 +34,7 @@ extension Based {
             if let jsonString = String(data: jsonData, encoding: .utf8) {
                 socket.send(message: .string(jsonString))
                 socket.idleTimeout()
-                sendAllSubscriptions(reAuth: true)
+                Task { await sendAllSubscriptions(reAuth: true) }
             }
         }
     }

@@ -13,7 +13,7 @@ extension Based {
     /**
      
      */
-    func sendAllSubscriptions(reAuth: Bool = false) {
+    func sendAllSubscriptions(reAuth: Bool = false) async {
         
         for (subscriptionId, subscription) in subscriptions {
 
@@ -22,9 +22,11 @@ extension Based {
               continue
             }
 
-            var getInQ: SubscriptionMessage?, queued: SubscriptionMessage?, getIndex: Int = 0
+            var getInQ: Message?, queued: Message?, getIndex: Int = 0
 
-            for (index, message) in subscriptionQueue.enumerated() {
+            let subscriptionMessages = await messages.allSubscriptionMessages()
+            
+            for (index, message) in subscriptionMessages.enumerated() {
                 if message.id == subscriptionId {
                     if message.requestType == .getSubscription {
                         getIndex = index
@@ -55,7 +57,7 @@ extension Based {
                 if onlyGets == true {
                   x = true
                 } else {
-                  subscriptionQueue.remove(at: getIndex)
+                  await messages.removeSubscriptionMessage(at: getIndex)
                 }
 
                 if
@@ -76,8 +78,8 @@ extension Based {
                         }
                     }
                 } else {
-                    addToQueue(
-                        message: SubscribeMessage(
+                    addToMessages(
+                        SubscribeMessage(
                             id: subscriptionId,
                             payload: subscription.payload,
                             checksum: cache?.checksum != nil ? cache?.checksum : 0,
@@ -109,7 +111,7 @@ extension Based {
         onError: ErrorCallback?,
         subscriptionId: SubscriptionId?,
         name: String?
-    ) -> (subscriptionId: Int, subscriberId: Int) {
+    ) async -> (subscriptionId: Int, subscriberId: Int) {
         
         let finalSubscriptionId =
             subscriptionId
@@ -121,6 +123,8 @@ extension Based {
         let cache = cache[finalSubscriptionId]
         
         var subscriberId: Int = 0
+        
+        let subscriptionMessages = await messages.allSubscriptionMessages()
         
         if let sub = subscription {
             subscriberId = sub.cnt + 1
@@ -135,12 +139,13 @@ extension Based {
             subscription?.subscribers[subscriberId] = SubscriptionCallback(onInitial: onInitial, onError: onError, onData: onData)
             
             if onlyGets {
-                subscriptionQueue.removeAll { message in
+                
+                try? await messages.removeAllSubscriptionMessages { message in
                     message.requestType == .getSubscription && message.id == finalSubscriptionId
                 }
                 
                 let message = SubscribeMessage(id: finalSubscriptionId, payload: payload, checksum: cache?.checksum ?? 0, requestMode: .sendDataBackWithSubscription, functionName: name)
-                addToQueue(message: message)
+                addToMessages(message)
             }
             
         } else {
@@ -156,9 +161,9 @@ extension Based {
                 var dontSend = false
                 var includeReply = false
                 var subMsg: SubscribeMessage?
-                var subscriptionsToDelete = [SubscriptionMessage]()
-                
-                subscriptionQueue.forEach { message in
+                var subscriptionsToDelete = [Message]()
+            
+                subscriptionMessages.forEach { message in
                     let type = message.requestType
                     let id = message.id
                     let checksum = message.checksum
@@ -183,7 +188,7 @@ extension Based {
                     }
                 }
                 
-                subscriptionQueue = subscriptionQueue.filter({ item in !subscriptionsToDelete.contains(where: { $0.id == item.id }) })
+                await messages.removeSubscriptionMessages(with: subscriptionsToDelete)
                 
                 if dontSend == false {
                     let requestMode: RequestMode = includeReply ? .sendDataBackWithSubscription : .dontSendBack
@@ -195,7 +200,7 @@ extension Based {
                         functionName: name
                     )
                     
-                    addToQueue(message: message)
+                    addToMessages(message)
                 }
                 
                 if let cache = cache {
@@ -227,8 +232,10 @@ extension Based {
                 if data.error?.auth != true {
                     callback.onInitial?(.auth(token), data.id, subscriberId, nil, nil)
                     subscriptions[data.id]?.subscribers[subscriberId]?.onInitial = nil
-    
-                    removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
+                    
+                    Task {
+                        await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
+                    }
                 } else {
                     callback.onError?(.auth(token))
                 }
@@ -249,7 +256,9 @@ extension Based {
                     callback.onInitial?(nil, data.id, subscriberId, cache[data.id]?.value, nil)
                     subscriptions[data.id]?.subscribers[subscriberId]?.onInitial = nil
                     if callback.onData == nil {
-                        removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
+                        Task {
+                            await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
+                        }
                     }
                 }
             }
@@ -269,7 +278,9 @@ extension Based {
                     callback.onInitial?(nil, data.id, subscriberId, data.data, nil)
                     subscriptions[data.id]?.subscribers[subscriberId]?.onInitial = nil
                     if callback.onData == nil {
-                        removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
+                        Task {
+                            await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
+                        }
                     }
                 }
                 
@@ -299,14 +310,14 @@ extension Based {
                             .subscribers[subscriberId]?.onInitial = nil
 
                         if callback.onData == nil {
-                            removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
+                            Task { await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId) }
                         }
                     }
                 } else {
-                    addToQueue(message: SendSubscriptionDataMessage(id: data.id, checksum: nil))
+                    addToMessages(SendSubscriptionDataMessage(id: data.id, checksum: nil))
                 }
             } else {
-                addToQueue(message: SendSubscriptionDataMessage(id: data.id, checksum: nil))
+                addToMessages(SendSubscriptionDataMessage(id: data.id, checksum: nil))
             }
         } else {
             
@@ -328,7 +339,7 @@ extension Based {
                     subscriptions[data.id]?
                         .subscribers[subscriberId]?.onInitial = nil
                     if callback.onData == nil {
-                        removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
+                        Task { await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId) }
                     }
                     if let checksum = cache?.checksum, let value = cache?.value {
                         callback.onData?(value, checksum)
@@ -336,7 +347,7 @@ extension Based {
                 }
             } else {
                 self.cache.removeValue(forKey: data.id)
-                addToQueue(message: SendSubscriptionDataMessage(id: data.id, checksum: nil))
+                addToMessages(SendSubscriptionDataMessage(id: data.id, checksum: nil))
             }
         }
     }
@@ -344,7 +355,7 @@ extension Based {
     /**
      
      */
-    func removeSubscriber(subscriptionId: SubscriptionId, subscriberId: SubscriberId? = nil) {
+    func removeSubscriber(subscriptionId: SubscriptionId, subscriberId: SubscriberId? = nil) async {
         if var subscription = subscriptions[subscriptionId] {
             var remove = false
 
@@ -362,20 +373,22 @@ extension Based {
                 subscriptions.removeValue(forKey: subscriptionId)
                 var dontSend = false
                 
-                for (index, subscriptionMessage) in subscriptionQueue.enumerated() {
+                let subscriptionMessages = await messages.allSubscriptionMessages()
+                
+                for (index, subscriptionMessage) in subscriptionMessages.enumerated() {
                     switch subscriptionMessage {
                     case is UnsubscribeMessage where subscriptionMessage.id == subscriptionId:
                         dontSend = true
                     case is SubscribeMessage where subscriptionMessage.id == subscriptionId,
                         is SendSubscriptionDataMessage where subscriptionMessage.id == subscriptionId:
-                        subscriptionQueue.remove(at: index)
+                        await messages.removeSubscriptionMessage(at: index)
                     default:
                         break
                     }
                 }
 
                 if !dontSend {
-                    addToQueue(message: UnsubscribeMessage(id: subscriptionId))
+                    addToMessages(UnsubscribeMessage(id: subscriptionId))
                 }
             }
         }
