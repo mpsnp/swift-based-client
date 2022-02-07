@@ -53,5 +53,5 @@ extension Based {
 }
 
 public struct SendTokenOptions {
-    let isBasedUser: Bool?
+    public let isBasedUser: Bool?
 }
