@@ -93,6 +93,12 @@ extension Based {
         }
     }
     
+    
+    /// Description
+    /// - Parameters:
+    ///   - payload: payload description
+    ///   - name: name description
+    /// - Returns: description
     func generateSubscriptionId(payload: JSON, name: String?) -> Int {
         var array = [payload]
         if let name = name {
@@ -101,9 +107,17 @@ extension Based {
         return Current.hasher.hashObjectIgnoreKeyOrder(JSON.array(array))
     }
     
-    /**
-     
-     */
+
+    
+    /// Description
+    /// - Parameters:
+    ///   - payload: payload description
+    ///   - onData: onData description
+    ///   - onInitial: onInitial description
+    ///   - onError: onError description
+    ///   - subscriptionId: subscriptionId description
+    ///   - name: name description
+    /// - Returns: description
     func addSubscriber(
         payload: JSON,
         onData: @escaping DataCallback,
@@ -123,8 +137,6 @@ extension Based {
         let cache = cache[finalSubscriptionId]
         
         var subscriberId: Int = 0
-        
-        let subscriptionMessages = await messages.allSubscriptionMessages()
         
         if let sub = subscription {
             subscriberId = sub.cnt + 1
@@ -150,65 +162,68 @@ extension Based {
             
         } else {
                 
-                subscriberId = 1
-                subscriptions[finalSubscriptionId] = SubscriptionModel(
-                    cnt: 1,
-                    payload: payload,
-                    name: name,
-                    subscribers: [1: SubscriptionCallback(onInitial: onInitial, onError: onError, onData: onData)]
-                )
-                
-                var dontSend = false
-                var includeReply = false
-                var subMsg: SubscribeMessage?
-                var subscriptionsToDelete = [Message]()
+            subscriberId = 1
+            subscriptions[finalSubscriptionId] = SubscriptionModel(
+                cnt: 1,
+                payload: payload,
+                name: name,
+                subscribers: [1: SubscriptionCallback(onInitial: onInitial, onError: onError, onData: onData)]
+            )
+            subscription = subscriptions[finalSubscriptionId]
             
-                subscriptionMessages.forEach { message in
-                    let type = message.requestType
-                    let id = message.id
-                    let checksum = message.checksum
-                    if type == .unsubscribe || type == .sendSubscriptionData || type == .getSubscription && id == finalSubscriptionId {
-                        if type == .getSubscription {
-                            includeReply = true
-                        }
+            var dontSend = false
+            var includeReply = false
+            var subMsg: SubscribeMessage?
+            var subscriptionsToDelete = [Message]()
+            
+            let subscriptionMessages = await messages.allSubscriptionMessages()
+        
+            subscriptionMessages.forEach { message in
+                let type = message.requestType
+                let id = message.id
+                let checksum = message.checksum
+                
+                if (type == .unsubscribe || type == .sendSubscriptionData || type == .getSubscription) && id == finalSubscriptionId {
+                    if type == .getSubscription {
+                        includeReply = true
+                    }
+                    subMsg?.requestMode = .sendDataBackWithSubscription
+                    
+                    subscriptionsToDelete.append(message)
+                } else if type == .subscription && id == finalSubscriptionId {
+                    dontSend = true
+                    
+                    subMsg = message as? SubscribeMessage
+                    
+                    if checksum != cache?.checksum {
+                        subMsg?.checksum = cache?.checksum
+                    }
+                    if subMsg?.requestMode != nil && includeReply {
                         subMsg?.requestMode = .sendDataBackWithSubscription
-                        
-                        subscriptionsToDelete.append(message)
-                    } else if type == .subscription && id == finalSubscriptionId {
-                        dontSend = true
-                        
-                        subMsg = message as? SubscribeMessage
-                        
-                        if checksum != cache?.checksum {
-                            subMsg?.checksum = cache?.checksum
-                        }
-                        if subMsg?.requestMode != nil && includeReply {
-                            subMsg?.requestMode = .sendDataBackWithSubscription
-                        }
                     }
                 }
-                
-                await messages.removeSubscriptionMessages(with: subscriptionsToDelete)
-                
-                if dontSend == false {
-                    let requestMode: RequestMode = includeReply ? .sendDataBackWithSubscription : .dontSendBack
-                    let message = SubscribeMessage(
-                        id: finalSubscriptionId,
-                        payload: payload,
-                        checksum: cache?.checksum ?? 0,
-                        requestMode: requestMode,
-                        functionName: name
-                    )
-                    
-                    addToMessages(message)
-                }
-                
-                if let cache = cache {
-                    onInitial?(nil, subscriptionId, subscriberId, nil, nil)
-                    subscription?.subscribers[subscriberId]?.onInitial = nil
-                    onData(cache.value, cache.checksum)
-                }
+            }
             
+            await messages.removeSubscriptionMessages(with: subscriptionsToDelete)
+            
+            if dontSend == false {
+                let requestMode: RequestMode = includeReply ? .sendDataBackWithSubscription : .dontSendBack
+                let message = SubscribeMessage(
+                    id: finalSubscriptionId,
+                    payload: payload,
+                    checksum: cache?.checksum ?? 0,
+                    requestMode: requestMode,
+                    functionName: name
+                )
+                
+                addToMessages(message)
+            }
+        }
+            
+        if let cache = cache {
+            onInitial?(nil, subscriptionId, subscriberId, nil, nil)
+            subscription?.subscribers[subscriberId]?.onInitial = nil
+            onData(cache.value, cache.checksum)
         }
         
         return (finalSubscriptionId, subscriberId)

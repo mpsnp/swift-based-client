@@ -6,88 +6,81 @@
 //
 
 import Foundation
-import AnyCodable
 
 
-public class BasedConfig {
-    let env: String?
-    let project: String?
-    let org: String?
-    var cluster: String
-    let name: String?
+final class BasedConfig {
+    var opts: Based.Opts
+    private let urlSession: URLSession
     private var urlString: String?
-    let params: [String: AnyCodable]?
+    private var servers: [String]?
     
-    public init(
-        env: String? = nil,
-        project: String? = nil,
-        org: String? = nil,
-        cluster: String = "https://d3gdtpkyvlxeve.cloudfront.net",
-        name: String? = "@based/hub",
-        url: String? = nil,
-        params: [String: AnyCodable]? = nil
+    init(
+        opts: Based.Opts,
+        urlSession: URLSession
     ) {
-            self.env = env
-            self.project = project
-            self.org = org
-            self.cluster = cluster
-            self.name = name
-            self.urlString = url
-            self.params = params
-        }
+        self.opts = opts
+        self.urlSession = urlSession
+    }
     
     var url: URL {
         get async throws {
-            if urlString == nil {
+            if let urlString = opts.urlString {
+                self.urlString = urlString
+            } else {
                 urlString = try await getUrl()
             }
             
-            guard let urlString = urlString, var components = URLComponents(string: urlString) else { throw BasedError.configuration("Could not establish an url") }
-            if let params = params {
+            guard
+                let urlString = urlString,
+                    var components = URLComponents(string: urlString)
+            else {
+                throw BasedError.configuration("Could not establish an url")
+            }
+            
+            if let params = opts.params {
                 let queryItems = params.map { URLQueryItem(name: $0.key, value: "\($0.value)") }
                 components.queryItems = queryItems
             }
             
-            guard let url = components.url else { throw BasedError.configuration("Could not establish an url") }
+            guard
+                let url = components.url
+                else {
+                    throw BasedError.configuration("Could not establish an url")
+                }
 
             return url
         }
     }
     
     private func getUrl() async throws -> String {
-        if cluster.starts(with: "http") == false {
-            self.cluster = "https://\(cluster)"
+        if opts.cluster.starts(with: "http") == false {
+            self.opts.cluster = "https://\(opts.cluster)"
         }
-        
-        let config = URLSessionConfiguration.default
-        config.waitsForConnectivity = true
-        config.timeoutIntervalForRequest = 4
-        let session = URLSession(configuration: config)
 
-        
-        let (listData, _) = try await session.data(from: URL(string: cluster)!)
+        let (listData, _) = try await urlSession.data(from: URL(string: opts.cluster)!)
         let list = try JSONDecoder().decode([String].self, from: listData)
         
         guard
             let selectUrl = list.randomElement(),
-            let org = org,
-            let project = project,
-            let env = env,
-            let name = name
-            else { throw BasedError.configuration("No url to connect") }
+            let org = opts.org,
+            let project = opts.project,
+            let env = opts.env
+            else {
+                throw BasedError.configuration("No url to connect")
+            }
         
-        let url = "\(selectUrl)/\(org).\(project).\(env).\(name)"
+        let url = "\(selectUrl)/\(org).\(project).\(env).\(opts.name)"
         
         do {
-            let (urlData, _) = try await session.data(from: URL(string: url)!)
+            let (urlData, _) = try await urlSession.data(from: URL(string: url)!)
             let realUrl = String(decoding: urlData, as: UTF8.self)
             if realUrl.isEmpty {
-                try await Task.sleep(seconds: 0.5)
+                try await Task.sleep(seconds: 0.3)
                 return try await getUrl()
             }
             return String(decoding: urlData, as: UTF8.self)
         } catch {
-            try await Task.sleep(seconds: 0.5)
+            try await Task.sleep(seconds: 0.3)
             return try await getUrl()
         }
     }

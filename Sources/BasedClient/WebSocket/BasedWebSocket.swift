@@ -8,7 +8,7 @@
 import Foundation
 
 protocol BasedWebSocketDelegate: AnyObject {
-    func onError(_: Error)
+    func onError(_: Error?)
     func onData(data: URLSessionWebSocketTask.Message)
     func onOpen()
     func onReconnect()
@@ -68,7 +68,7 @@ final class BasedWebSocket: NSObject, WebSocket {
         socket?.send(message, completionHandler: { [weak self] error in
             dataInfo(error?.localizedDescription ?? "")
             switch (error as NSError?)?.code {
-            case .some(54): self?.reconnect()
+            case .some(54), .some(57): self?.reconnect()
             default: break
             }
         })
@@ -113,6 +113,10 @@ extension BasedWebSocket: URLSessionWebSocketDelegate {
                 break
             default: reconnect()
         }
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        delegate?.onError(error)
     }
     
 }

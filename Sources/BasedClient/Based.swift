@@ -11,6 +11,30 @@ import AnyCodable
 
 public final class Based {
     
+    public struct Opts {
+        public let env: String?
+        public let project: String?
+        public let org: String?
+        public var cluster: String
+        public let name: String
+        public let params: [String: String]?
+        public var urlString: String? = nil
+        public init(
+            env: String? = nil,
+            project: String? = nil,
+            org: String? = nil,
+            cluster: String = "https://d3gdtpkyvlxeve.cloudfront.net",
+            name: String = "@based/hub",
+            params: [String: String]? = nil) {
+                self.env = env
+                self.project = project
+                self.org = org
+                self.cluster = cluster
+                self.name = name
+                self.params = params
+        }
+    }
+    
     var config: BasedConfig
     
     let decoder = JSONDecoder()
@@ -42,7 +66,13 @@ public final class Based {
     var requestIdCnt: Int = 0
     var requestCallbacks = RequestCallbacks()
     
-    public required convenience init(config: BasedConfig) {
+    public required convenience init(opts: Opts) {
+        let urlSessionConfig = URLSessionConfiguration.default
+        urlSessionConfig.waitsForConnectivity = true
+        urlSessionConfig.timeoutIntervalForRequest = 4
+        urlSessionConfig.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        let session = URLSession(configuration: urlSessionConfig)
+        let config = BasedConfig(opts: opts, urlSession: session)
         self.init(config: config, ws: BasedWebSocket(), emitter: Emitter(), messages: Messages())
     }
     
@@ -58,11 +88,13 @@ public final class Based {
         self.messages = messages
         messageManager = MessageManager(messages: messages, socket: ws)
         self.socket.delegate = self
-        Task.init {
+        Task {
             do {
-                try await connect(with: config.url)
+                let finalUrl = try await config.url
+                connect(with: finalUrl)
+            } catch {
+                print(error.localizedDescription)
             }
-            catch { print(error) }
         }
     }
     
@@ -85,7 +117,6 @@ public final class Based {
 extension Based: BasedWebSocketDelegate {
     
     func onClose() {
-//        stopDrainQueue()
         Task {
             await messageManager.cancelAll()
             await messages.removeSubscriptionMessages(with: .unsubscribe)
@@ -105,11 +136,11 @@ extension Based: BasedWebSocketDelegate {
             await sendAllSubscriptions()
             await messageManager.sendAllMessages()
         }
-//        drainQueue()
-        
     }
     
-    func onError(_: Error) {}
+    func onError(_: Error?) {
+        
+    }
     
     func onData(data: URLSessionWebSocketTask.Message) {
         switch data {

@@ -198,7 +198,7 @@ extension Based {
         } else {
             let targetUrl = try await config.url
             let urlString = targetUrl.absoluteString.replacingOccurrences(of: "ws", with: "http")
-            if config.env == nil, let url = URL(string: "\(urlString)") {
+            if config.opts.env == nil, let url = URL(string: "\(urlString)") {
                 return url
             } else if let url = URL(string: "\(urlString)/file") {
                 return url
