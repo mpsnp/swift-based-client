@@ -5,19 +5,8 @@
 //  Created by Alexander van der Werff on 31/08/2021.
 //
 
-public typealias SubscriptionId = Int
-public typealias SubscriberId = Int
-typealias Subscriptions = Dictionary<SubscriptionId, SubscriptionModel>
 
 public typealias DataCallback = (_ data: Any, _ checksum: Int) -> ()
-public typealias CompleteCallback = (_ data: Any?) -> Void
-public typealias InitialCallback = (
-    _ error: BasedError?,
-    _ subscriptionId: SubscriptionId?,
-    _ subscriberId: SubscriberId?,
-    _ data: Any?,
-    _ isAuthError: Bool?
-) -> ()
 public typealias ErrorCallback = (_ error: BasedError) -> ()
 
 typealias DigestOptions = String

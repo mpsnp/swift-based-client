@@ -56,33 +56,41 @@ final class BasedConfig {
         if opts.cluster.starts(with: "http") == false {
             self.opts.cluster = "https://\(opts.cluster)"
         }
-
-        let (listData, _) = try await urlSession.data(from: URL(string: opts.cluster)!)
-        let list = try JSONDecoder().decode([String].self, from: listData)
-        
-        guard
-            let selectUrl = list.randomElement(),
-            let org = opts.org,
-            let project = opts.project,
-            let env = opts.env
-            else {
-                throw BasedError.configuration("No url to connect")
-            }
-        
-        let url = "\(selectUrl)/\(org).\(project).\(env).\(opts.name)"
         
         do {
-            let (urlData, _) = try await urlSession.data(from: URL(string: url)!)
-            let realUrl = String(decoding: urlData, as: UTF8.self)
+            let list = try await getServerUrls()
+            let realUrl = try await getFinalUrl(list)
             if realUrl.isEmpty {
                 try await Task.sleep(seconds: 0.3)
                 return try await getUrl()
             }
-            return String(decoding: urlData, as: UTF8.self)
+            return realUrl
         } catch {
             try await Task.sleep(seconds: 0.3)
             return try await getUrl()
         }
+    }
+    
+    private func getServerUrls() async throws -> [String] {
+        let (listData, _) = try await urlSession.data(from: URL(string: opts.cluster)!)
+        let list = try JSONDecoder().decode([String].self, from: listData)
+        return list
+    }
+    
+    private func getFinalUrl(_ serverUrls: [String]) async throws -> String {
+        guard
+            let selectUrl = serverUrls.randomElement(),
+            let org = opts.org,
+            let project = opts.project,
+            let env = opts.env
+        else {
+            throw BasedError.configuration("No url to connect")
+        }
+        
+        let url = "\(selectUrl)/\(org).\(project).\(env).\(opts.name)"
+        let (urlData, _) = try await urlSession.data(from: URL(string: url)!)
+        let finalUrlString = String(decoding: urlData, as: UTF8.self)
+        return finalUrlString
     }
     
 }

@@ -31,8 +31,9 @@ extension Based {
             
             Task {
                 let subscription = await DataSubscription(type: type, based: based, subscriber: subscriber)
-        
                 subscriber.receive(subscription: subscription)
+                
+                await based.shouldSendDataFromCache(for: subscription.ids.subscriptionId, and: subscription.ids.subscriberId)
             }
         }
     }
@@ -41,19 +42,17 @@ extension Based {
         
         private var based: Based?
         private let type: SubscriptionType
-        private let subscriptionId: SubscriptionId
         private var subscriber: S?
         private var payload: JSON = JSON.null
         private var name: String? = nil
-        private let dataCallback: DataCallback
-        private let initialCallback: InitialCallback
-        private let errorCallback: ErrorCallback
-        private let ids: (subscriptionId: SubscriptionId, subscriberId: SubscriptionId)
+        
+        let dataCallback: DataCallback
+        let errorCallback: ErrorCallback
+        let ids: (subscriptionId: SubscriptionId, subscriberId: SubscriberId)
         
         init(type: SubscriptionType, based: Based, subscriber: S) async {
             self.based = based
             self.type = type
-            self.subscriptionId = type.generateSubscriptionId()
             self.subscriber = subscriber
             
             switch type {
@@ -75,17 +74,6 @@ extension Based {
                 Self.handleData(subscriber: subscriber, data: data, based: based)
             }
             
-            initialCallback = { error, subscriptionId, subscriberId, data, isAuthError in
-                if let error = error {
-                    subscriber.receive(completion: Subscribers.Completion.failure(error))
-                    return
-                }
-                guard let data = data as? Data else {
-                    return
-                }
-                Self.handleData(subscriber: subscriber, data: data, based: based)
-            }
-            
             errorCallback = { error in
                 subscriber.receive(completion: Subscribers.Completion.failure(error))
             }
@@ -93,9 +81,8 @@ extension Based {
             ids = await based.addSubscriber(
                 payload: payload,
                 onData: dataCallback,
-                onInitial: initialCallback,
                 onError: errorCallback,
-                subscriptionId: subscriptionId,
+                subscriptionId: type.generateSubscriptionId(),
                 name: name
             )
         }
@@ -103,9 +90,11 @@ extension Based {
         func request(_ demand: Subscribers.Demand) {}
         
         func cancel() {
-            Task { await based?.removeSubscriber(subscriptionId: ids.subscriptionId, subscriberId: ids.subscriberId) }
-            subscriber = nil
-            based = nil
+            Task {
+                await based?.removeSubscriber(subscriptionId: ids.subscriptionId, subscriberId: ids.subscriberId)
+                subscriber = nil
+                based = nil
+            }
         }
         
         private static func handleData(subscriber: S, data: Data, based: Based) {

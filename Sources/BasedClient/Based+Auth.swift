@@ -17,14 +17,14 @@ extension Based {
      
      */
     public func auth(token: String?, options: SendTokenOptions? = nil) async -> Any? {
-        await withCheckedContinuation { [weak self] continuation in
+        if let token = token {
+            await sendToken(token, options)
+        } else {
+            await sendToken()
+        }
+        emitter.emit(type: "auth", token)
+        return await withCheckedContinuation { [weak self] continuation in
             auth.append(AuthFunction(resolve: { continuation.resume(returning: $0) }))
-            if let token = token {
-                self?.sendToken(token, options)
-            } else {
-                self?.sendToken()
-            }
-            self?.emitter.emit(type: "auth", token)
         }
     }
     
@@ -33,9 +33,9 @@ extension Based {
      */
     public func auth(token: String?, options: SendTokenOptions? = nil) {
         if let token = token {
-            sendToken(token, options)
+            Task { await sendToken(token, options) }
         } else {
-            sendToken()
+            Task { await sendToken() }
         }
         emitter.emit(type: "auth", token)
     }

@@ -6,12 +6,15 @@
 //
 
 import SwiftUI
+import Combine
 import BasedClient
 
 @main
-struct BasicExampleApp: App {
+class BasicExampleApp: App {
     
-    let client = Based(config: BasedConfig(url: "ws://localhost:9100"))
+    required init() {
+        
+    }
     
     var body: some Scene {
         WindowGroup {

@@ -45,7 +45,7 @@ public final class Based {
     
     let socket: BasedWebSocket
     
-    var subscriptions = Subscriptions()
+    var subscriptionManager = SubscriptionManager()
     
     var cache: [Int: (value: Data, checksum: Int)] = [:]
     
@@ -131,16 +131,14 @@ extension Based: BasedWebSocketDelegate {
     
     func onOpen() {
         emitter.emit(type: "connect")
-        sendToken(token, sendTokenOptions)
         Task {
+            await sendToken(token, sendTokenOptions)
             await sendAllSubscriptions()
             await messageManager.sendAllMessages()
         }
     }
     
-    func onError(_: Error?) {
-        
-    }
+    func onError(_: Error?) {}
     
     func onData(data: URLSessionWebSocketTask.Message) {
         switch data {
@@ -153,7 +151,7 @@ extension Based: BasedWebSocketDelegate {
             switch RequestType(rawValue: dataMessage[0].value as? Int ?? -1) {
             case .some(.token):
                 if let data = dataMessage[1].value as? [Int], dataMessage.count > 1 {
-                    logoutSubscriptions(data)
+                    Task { await logoutSubscriptions(data) }
                 }
                 if let state = dataMessage[2].value as? Bool {
                     auth.forEach { auth in
@@ -170,13 +168,14 @@ extension Based: BasedWebSocketDelegate {
                     let id = dataMessage[1].value as? Int,
                     let checksum = dataMessage[3].value as? Int,
                     let jsonData = try? encoder.encode(dataMessage[2]) {
-                        
-                    var error: ErrorObject?
-                    if dataMessage.count > 4 {
-                        error = .init(from: dataMessage[4])
-                    }
                     
-                    incomingSubscription(SubscriptionData(id: id, data: jsonData, checksum: checksum, error: error))
+                    Task {
+                        var error: ErrorObject?
+                        if dataMessage.count > 4 {
+                            error = .init(from: dataMessage[4])
+                        }
+                        await incomingSubscription(SubscriptionData(id: id, data: jsonData, checksum: checksum, error: error))
+                    }
                 }
             case .some(.subscriptionDiff):
                 if
@@ -187,7 +186,7 @@ extension Based: BasedWebSocketDelegate {
                     let previous = checksums[0]
                     let current = checksums[1]
                     
-                    incomingSubscriptionDiff(SubscriptionDiffData(id: id, patchObject: diff, checksums: (previous: previous, current: current)))
+                    Task { await  incomingSubscriptionDiff(SubscriptionDiffData(id: id, patchObject: diff, checksums: (previous: previous, current: current))) }
                 }
             default:
                 print("no match")

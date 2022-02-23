@@ -10,7 +10,11 @@ import AnyCodable
 
 
 extension Based {
-    func sendToken(_ token: String? = nil, _ options: SendTokenOptions? = nil) {
+    
+    func sendToken(_ token: String? = nil, _ options: SendTokenOptions? = nil) async {
+        
+        let subscriptions = await subscriptionManager.getSubscriptions()
+        
         beingAuth = true
         if let token = token {
             self.token = token
@@ -39,11 +43,17 @@ extension Based {
         }
     }
     
-    func logoutSubscriptions(_ data: [Int]) {
+    func logoutSubscriptions(_ data: [Int]) async {
+        
+        let subscriptions = await subscriptionManager.getSubscriptions()
+        
         for id in data {
             cache.removeValue(forKey: id)
             var subscription = subscriptions[id]
             subscription?.error = BasedError.auth(token)
+            if let subscription = subscription {
+                await subscriptionManager.updateSubscription(with: id, subscription: subscription)
+            }
             
             subscription?.subscribers.forEach({ (id, callback) in
                 callback.onError?(BasedError.auth(token))

@@ -52,10 +52,6 @@ public class Observable {
         subscriptionId = type.generateSubscriptionId()
     }
     
-    deinit {
-        
-    }
-    
     public func subscribe(
         onNext: @escaping DataCallback,
         onError: @escaping ErrorCallback
@@ -76,11 +72,6 @@ public class Observable {
         let ids = await based.addSubscriber(
             payload: payload,
             onData: onNext,
-            onInitial: { error, subscriptionId, subscriberId, data, isAuthError in
-                if let error = error {
-                    onError(error)
-                }
-            },
             onError: onError,
             subscriptionId: subscriptionId,
             name: name

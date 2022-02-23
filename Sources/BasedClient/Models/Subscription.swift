@@ -5,16 +5,46 @@
 //  Created by Alexander van der Werff on 31/08/2021.
 //
 
+import Foundation
+
+typealias SubscriptionId = Int
+typealias SubscriberId = String
+typealias Subscriptions = Dictionary<SubscriptionId, SubscriptionModel>
+
+actor SubscriptionManager {
+    private var subscriptions = Subscriptions()
+    
+    func getSubscriptions() -> Subscriptions {
+        return subscriptions
+    }
+    
+    func subscription(with id: SubscriptionId) -> SubscriptionModel? {
+        return subscriptions[id]
+    }
+    
+    func removeSubscription(with id: SubscriptionId) {
+        subscriptions.removeValue(forKey: id)
+    }
+    
+    func updateSubscription(with id: SubscriptionId, subscription: SubscriptionModel) {
+        subscriptions[id] = subscription
+    }
+    
+    func addSubscriber(for id: SubscriptionId, and subscriber: SubscriptionCallback) -> SubscriberId {
+        let subscriberId = UUID().uuidString
+        subscriptions[id]?.subscribers[subscriberId] = subscriber
+        return subscriberId
+    }
+}
+
 struct SubscriptionModel {
     var error: BasedError?
-    var cnt: Int
     var payload: JSON?
     let name: String?
     var subscribers: Dictionary<SubscriberId, SubscriptionCallback> = [:]
 }
 
 struct SubscriptionCallback {
-    var onInitial: InitialCallback?
     var onError: ErrorCallback?
     var onData: DataCallback?
 }
