@@ -242,8 +242,6 @@ extension Based {
     }
     
     
-
-    
     ///
     /// - Parameter data: data description
     func incomingSubscription(_ data: SubscriptionData) async {
@@ -256,17 +254,16 @@ extension Based {
         
         guard data.error == nil else {
             if data.error?.auth == true {
-                subscription.error = .auth(token)
+                subscription.error = .auth(token: token)
             }
             
             subscription.subscribers.forEach { subscriberId, callback in
                 if data.error?.auth != true {
-                    
                     Task {
                         await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
                     }
                 } else {
-                    callback.onError?(.auth(token))
+                    callback.onError?(.auth(token: token))
                 }
             }
             

@@ -164,11 +164,11 @@ extension Based {
                 let (options, token) = args
                 
                 guard let token = token else {
-                    throw BasedError.other("Token not found")
+                    throw BasedError.missingToken(message: "Token not found")
                 }
                 
                 guard let targetUrl = try await self?.getUrl(options: options) else {
-                    throw BasedError.other("Could not construct target url for file upload")
+                    throw BasedError.noValidURL(message: "Could not construct target url for file upload")
                 }
             
                 var id = options.id
@@ -204,7 +204,7 @@ extension Based {
                 return url
             }
         }
-        throw BasedError.other("Could not construct target url for file upload")
+        throw BasedError.noValidURL(message: "Could not construct target url for file upload")
     }
 }
 

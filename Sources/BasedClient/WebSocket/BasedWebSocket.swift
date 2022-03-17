@@ -96,6 +96,7 @@ extension BasedWebSocket: URLSessionWebSocketDelegate {
         connected = true
         if reconnecting {
             delegate?.onReconnect()
+            reconnecting = false
         }
         delegate?.onOpen()
     }
@@ -117,6 +118,7 @@ extension BasedWebSocket: URLSessionWebSocketDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         delegate?.onError(error)
+        reconnect()
     }
     
 }

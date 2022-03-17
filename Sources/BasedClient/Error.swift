@@ -5,36 +5,34 @@
 //  Created by Alexander van der Werff on 31/08/2021.
 //
 
-import AnyCodable
-
-struct AuthorizationError {
-    let name: String
-    let call: String?
-    let auth: Bool?
-    let message: String?
-    let payload: [String: Any]?
-}
-
-extension AuthorizationError {
-    init?(_ json: [String: AnyCodable]) {
-        guard let name = json["name"]?.value as? String else { return nil }
-        self.name = name
-        self.call = json["call"]?.value as? String
-        self.auth = json["auth"]?.value as? Bool
-        self.message = json["message"]?.value as? String
-        self.payload = json["payload"]?.value as? [String: Any]
-    }
-}
+/*
+ [\"message\": \"Unauthorized request\",
+   \"type\": \"AuthorizationError\",
+   \"auth\": true,
+   \"payload\": [\"documents\": false, \"id\": \"use22bd860\"], \"name\": \"call \\\"users-observeId\\\"\"])]
+ */
 
 public enum BasedError: Error {
     case
-        generic,
-        auth(_ token: String?),
+        auth(token: String?),
         configuration(_ reason: String),
-        other(_ message: String?),
-        validation(_ message: String?)
-    
-    enum request: Error {
-        case authorization(AuthorizationError?)
+        other(message: String?),
+        validation(message: String?),
+        authorization(notAuthenticated: Bool, message: String?),
+        functionNotExist(message: String?),
+        missingToken(message: String?),
+        noValidURL(message: String?)
+}
+
+extension BasedError {
+    static func from(_ errorObject: ErrorObject) -> Self {
+        switch errorObject.type {
+        case "AuthorizationError":
+            return .authorization(notAuthenticated: errorObject.auth ?? false, message: errorObject.message)
+        case "FunctionDoesNotExistError":
+            return .functionNotExist(message: errorObject.message)
+        default:
+            return .other(message: errorObject.message)
+        }
     }
 }

@@ -50,13 +50,13 @@ extension Based {
         for id in data {
             cache.removeValue(forKey: id)
             var subscription = subscriptions[id]
-            subscription?.error = BasedError.auth(token)
+            subscription?.error = BasedError.authorization(notAuthenticated: true, message: "Unauthorized request")
             if let subscription = subscription {
                 await subscriptionManager.updateSubscription(with: id, subscription: subscription)
             }
             
             subscription?.subscribers.forEach({ (id, callback) in
-                callback.onError?(BasedError.auth(token))
+                callback.onError?(BasedError.auth(token: token))
             })
         }
     }

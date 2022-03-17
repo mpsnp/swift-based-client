@@ -8,27 +8,38 @@
 import Foundation
 import AnyCodable
 
+
+/// ErrorObject returned from Based server
+/// Example:
+/// [
+///     "message": "Unauthorized request",
+///     "type": "AuthorizationError",
+///     "auth": true,
+///     "payload": ["documents": false, "id": "use22bd860"],
+///     "name": "call users-observeId"])
+/// ]
 struct ErrorObject: Decodable {
     let type: String
     let message: String
     let name: String?
-    let query:  [String: AnyDecodable]?
+    let query: AnyDecodable?
     let payload: AnyDecodable?
     let auth: Bool?
+    let code: String?
 }
+
 
 extension ErrorObject {
     init?(from data: AnyCodable) {
-        if let data = data.value as? [String: Any],
-            let type = data["type"] as? String,
-            let message = data["message"] as? String {
-            self.type = type
-            self.message = message
-            self.name = data["name"] as? String
-            self.query = data["query"] as? [String : AnyDecodable]
-            self.payload = data["payload"] as? AnyDecodable
-            self.auth = data["auth"] as? Bool
+        guard let data = data.value as? [String: Any] else {
+            return nil
         }
-        return nil
+        type = data["type"] as? String ?? ""
+        message = data["message"] as? String ?? ""
+        name = data["name"] as? String
+        query = AnyDecodable(data["query"])
+        payload = AnyDecodable(data["payload"])
+        auth = data["auth"] as? Bool
+        code = data["code"] as? String
     }
 }

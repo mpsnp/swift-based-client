@@ -48,15 +48,13 @@ extension Based {
         requestCallbacks.removeValue(forKey: id)
         
         guard data.count <= 3 else {
-            if let errorObject = data[3].value as? [String: Any], let errorType = errorObject["type"] as? String {
-                switch errorType {
-                case "ValidationError":
-                    cb.reject(BasedError.validation(errorObject["message"] as? String))
-                default:
-                    cb.reject(BasedError.other("Something unexpected happened"))
-                }
+            if
+                let errorObject = ErrorObject(from: data[3]) {
+                
+                cb.reject(BasedError.from(errorObject))
+
             } else {
-                cb.reject(BasedError.other("Something unexpected happened"))
+                cb.reject(BasedError.other(message: "Something unexpected happened"))
             }
             return
         }

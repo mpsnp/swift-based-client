@@ -35,8 +35,7 @@ public struct Actors: Decodable {
                     .list(
                         .find(
                             .traverse("descendants"),
-                            .filter(.from("type"), .operator("="), .value("actor")),
-                            .and(.field("parent.id"), .operator("="), .value("mo677e8193"))
+                            .filter(.from("type"), .operator("="), .value("actor"))
                         )
                     )
             )
