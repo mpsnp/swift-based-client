@@ -7,8 +7,8 @@
 
 import Foundation
 
-typealias SubscriptionId = Int
-typealias SubscriberId = String
+public typealias SubscriptionId = Int
+public typealias SubscriberId = String
 typealias Subscriptions = Dictionary<SubscriptionId, SubscriptionModel>
 
 actor SubscriptionManager {
@@ -30,6 +30,7 @@ actor SubscriptionManager {
         subscriptions[id] = subscription
     }
     
+    @discardableResult
     func addSubscriber(for id: SubscriptionId, and subscriber: SubscriptionCallback) -> SubscriberId {
         let subscriberId = UUID().uuidString
         subscriptions[id]?.subscribers[subscriberId] = subscriber

@@ -47,7 +47,7 @@ public final class Based {
     
     var subscriptionManager = SubscriptionManager()
     
-    var cache: [Int: (value: Data, checksum: Int)] = [:]
+    var cache: Cache = Cache()
     
     var token: String? = "token"
     

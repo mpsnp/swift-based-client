@@ -44,7 +44,14 @@ struct SubscribeMessage: SubscriptionMessage {
     var requestMode: RequestMode?
     let functionName: String?
     var codable: [AnyEncodable] {
-        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(payload?.anyValue), AnyEncodable(checksum), AnyEncodable(requestMode), AnyEncodable(functionName)]
+        [
+            AnyEncodable(requestType.rawValue),
+            AnyEncodable(id),
+            AnyEncodable(payload?.anyValue),
+            AnyEncodable(checksum),
+            AnyEncodable(requestMode),
+            AnyEncodable(functionName)
+        ]
     }
 }
 
@@ -60,11 +67,17 @@ struct SendSubscriptionDataMessage: SubscriptionMessage {
 struct SendSubscriptionGetDataMessage: SubscriptionMessage {
     var requestType: RequestType { .getSubscription }
     let id: Int
-    let query: BasedQuery?
+    let query: [String: Any]?
     var checksum: Int?
     let customObservableFuncName: String?
     var codable: [AnyEncodable] {
-        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(query?.dictionary()), AnyEncodable(checksum), AnyEncodable(customObservableFuncName)]
+        [
+            AnyEncodable(requestType.rawValue),
+            AnyEncodable(id),
+            AnyEncodable(query),
+            AnyEncodable(checksum),
+            AnyEncodable(customObservableFuncName)
+        ]
     }
 }
 

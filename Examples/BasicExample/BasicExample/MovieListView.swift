@@ -27,6 +27,11 @@ class MovieListViewModel: ObservableObject {
     private var task: AnyCancellable?
     
     func fetchMovies() {
+        
+//        Task {
+//        let test: Movies? = try? await Current.client.based.get(name: "movies", payload: [:])
+//        print(test ?? "")
+//        }
         let query = BasedQuery.query(
             .field("movies", .field("name", true), .field("id", true), .list(.find(.traverse("children"), .filter(.from("type"), .operator("="), .value("movie")))))
         )

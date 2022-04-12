@@ -42,7 +42,7 @@ extension Based {
                 print("GET IN Q AND SUB IN Q SHOULD BE IMPOSSIBLE")
             }
 
-            let cache = cache[subscriptionId]
+            let cache = await cache.fetch(with: subscriptionId)
             var x = false
 
             if getInQ != nil {
@@ -134,7 +134,7 @@ extension Based {
         
         var subscription = await subscriptionManager.subscription(with: finalSubscriptionId)
         
-        let cache = cache[finalSubscriptionId]
+        let cache = await cache.fetch(with: finalSubscriptionId)
         
         //let subscriberId: Int = (subscription?.subscribers.count ?? 0) + 1
         var subscriberId = ""
@@ -159,7 +159,14 @@ extension Based {
                     message.requestType == .getSubscription && message.id == finalSubscriptionId
                 }
                 
-                let message = SubscribeMessage(id: finalSubscriptionId, payload: payload, checksum: cache?.checksum ?? 0, requestMode: .sendDataBackWithSubscription, functionName: name)
+                let message = SubscribeMessage(
+                    id: finalSubscriptionId,
+                    payload: payload,
+                    checksum: cache?.checksum ?? 0,
+                    requestMode: .sendDataBackWithSubscription,
+                    functionName: name
+                )
+                
                 addToMessages(message)
             }
             
@@ -176,38 +183,53 @@ extension Based {
             
             var dontSend = false
             var includeReply = false
-            var subMsg: SubscribeMessage?
-            var subscriptionsToDelete = [Message]()
+            
+            var messagesToDelete = [Message?]()
+            var messageToUpdate = [Message?]()
             
             let subscriptionMessages = await messages.allSubscriptionMessages()
         
+            var subsMsg: SubscribeMessage?
             subscriptionMessages.forEach { message in
                 let type = message.requestType
                 let id = message.id
                 let checksum = message.checksum
                 
-                if (type == .unsubscribe || type == .sendSubscriptionData || type == .getSubscription) && id == finalSubscriptionId {
+                if
+                    (type == .unsubscribe || type == .sendSubscriptionData || type == .getSubscription)
+                        && id == finalSubscriptionId {
                     if type == .getSubscription {
                         includeReply = true
                     }
-                    subMsg?.requestMode = .sendDataBackWithSubscription
+                    subsMsg?.requestMode = .sendDataBackWithSubscription
+                    messagesToDelete.append(subsMsg)
+                    messageToUpdate.removeAll { mes in
+                        mes?.id == subsMsg?.id
+                    }
                     
-                    subscriptionsToDelete.append(message)
                 } else if type == .subscription && id == finalSubscriptionId {
                     dontSend = true
                     
-                    subMsg = message as? SubscribeMessage
+                    subsMsg = message
                     
+                    var messageIsChanged = false
                     if checksum != cache?.checksum {
-                        subMsg?.checksum = cache?.checksum
+                        subsMsg?.checksum = cache?.checksum
+                        messageIsChanged = true
                     }
-                    if subMsg?.requestMode != nil && includeReply {
-                        subMsg?.requestMode = .sendDataBackWithSubscription
+                    if subsMsg?.requestMode != nil && includeReply {
+                        subsMsg?.requestMode = .sendDataBackWithSubscription
+                        messageIsChanged = true
+                    }
+                    
+                    if messageIsChanged == true {
+                        messageToUpdate.append(subsMsg)
                     }
                 }
             }
             
-            await messages.removeSubscriptionMessages(with: subscriptionsToDelete)
+            await messages.removeSubscriptionMessages(with: messagesToDelete.compactMap{$0})
+            await messages.updateSubscriptionMessages(with: messageToUpdate.compactMap{$0})
             
             if dontSend == false {
                 let requestMode: RequestMode = includeReply ? .sendDataBackWithSubscription : .dontSendBack
@@ -233,7 +255,7 @@ extension Based {
     ///   - subscriberId: subscriberId description
     func shouldSendDataFromCache(for subscriptionId: SubscriptionId, and subscriberId: SubscriberId) async {
         guard
-            let cache = cache[subscriptionId],
+            let cache = await cache.fetch(with: subscriptionId),
             let subscription = await subscriptionManager.subscription(with: subscriptionId)
             else { return }
         
@@ -249,7 +271,8 @@ extension Based {
             var subscription = await subscriptionManager.subscription(with: data.id)
         else { return }
         
-        let previousChecksum = cache[data.id]?.checksum
+        let cache = await cache.fetch(with: data.id)
+        let previousChecksum = cache?.checksum
         dataInfo("Checksum in. previous: \(String(describing: previousChecksum)). New \(String(describing: data.checksum)). Error: \(String(describing: data.error))")
         
         guard data.error == nil else {
@@ -295,7 +318,7 @@ extension Based {
 //                cache[data.id] = (jsonData, data.checksum ?? 0)
 //            }
             
-            cache[data.id] = (data.data, data.checksum ?? 0)
+            await self.cache.store(data.id, data: (data.data, data.checksum ?? 0))
             
             subscription.subscribers.forEach { subscriberId, callback in
                 if callback.onData == nil {
@@ -319,7 +342,7 @@ extension Based {
             let subscription = await subscriptionManager.subscription(with: data.id)
         else { return }
         
-        var cache = cache[data.id]
+        var cache = await cache.fetch(with: data.id)
         
         if cache == nil || cache?.checksum != data.checksums.previous {
             if cache != nil {
@@ -344,13 +367,22 @@ extension Based {
                 let json = try? decoder.decode(JSON.self, from: value),
                 let patched = Current.patcher.applyPatch(json, data.patchObject),
                 let encodedPatch = try? encoder.encode(patched) {
+                
                 cache?.value = encodedPatch
+                if let updatedCache = cache {
+                    await self.cache.store(data.id, data: updatedCache)
+                }
+                
+                
             } else {
                 isCorrupt = true
             }
             
             if isCorrupt == false {
                 cache?.checksum = data.checksums.current
+                if let updatedCache = cache {
+                    await self.cache.store(data.id, data: updatedCache)
+                }
                 subscription.subscribers.forEach { subscriberId, callback in
                     if callback.onData == nil {
                         Task { await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId) }
@@ -360,7 +392,7 @@ extension Based {
                     }
                 }
             } else {
-                self.cache.removeValue(forKey: data.id)
+                await self.cache.remove(with: data.id)
                 addToMessages(SendSubscriptionDataMessage(id: data.id, checksum: nil))
             }
         }

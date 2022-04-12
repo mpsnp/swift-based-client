@@ -22,8 +22,8 @@ actor Messages {
         }
     }
     
-    func allSubscriptionMessages() -> [Message] {
-        subscriptionMessages
+    func allSubscriptionMessages() -> [SubscribeMessage] {
+        subscriptionMessages as? [SubscribeMessage] ?? []
     }
     
     func removeSubscriptionMessage(at index: Int) {
@@ -44,6 +44,12 @@ actor Messages {
         subscriptionMessages = subscriptionMessages.filter({ item in !messages.contains(where: { $0.id == item.id }) })
     }
     
+    func updateSubscriptionMessages(with messages: [Message]) {
+        subscriptionMessages = subscriptionMessages
+            .filter({ item in !messages.contains(where: { $0.id == item.id }) })
+        subscriptionMessages.append(contentsOf: messages)
+    }
+    
     func popAll() -> [Message] {
         let all = messages + subscriptionMessages
         messages = []
@@ -53,5 +59,13 @@ actor Messages {
     
     func messageCount() -> Int {
         messages.count
+    }
+    
+    func subscriptionMessageCount() -> Int {
+        subscriptionMessages.count
+    }
+    
+    func totalMessageCount() -> Int {
+        messages.count + subscriptionMessages.count
     }
 }

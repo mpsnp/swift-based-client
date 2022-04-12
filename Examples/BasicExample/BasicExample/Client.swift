@@ -17,7 +17,7 @@ struct Client {
 
 extension Client {
     static let `default` = Self(
-        based: Based(opts: Based.Opts(env: "__YOUR_ENV__", project: "__YOUR_PROJECTY__", org: "__YOUR_ORG__")),
+        based: Based(opts: Based.Opts(env: "example", project: "airhub", org: "airhub")),
         configure: {
             let result = try? await Current.client.based
                 .configure(schema: [
@@ -39,6 +39,9 @@ extension Client {
             print(result ?? "")
         },
         prepare: {
+            let query = BasedQuery.query(
+                .field("movies", .field("name", true), .field("id", true), .list(.find(.traverse("children"), .filter(.from("type"), .operator("="), .value("movie")))))
+            )
             let result = try? await Current.client.based.delete(id: "root", database: nil)
             print(result ?? "")
         },

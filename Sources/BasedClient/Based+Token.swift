@@ -11,6 +11,11 @@ import AnyCodable
 
 extension Based {
     
+    
+    /// sendToken
+    /// - Parameters:
+    ///   - token:
+    ///   - options:
     func sendToken(_ token: String? = nil, _ options: SendTokenOptions? = nil) async {
         
         let subscriptions = await subscriptionManager.getSubscriptions()
@@ -20,12 +25,15 @@ extension Based {
             self.token = token
             self.sendTokenOptions = options
         } else {
-            cache.forEach { args in
+            var toBeDeleted = [SubscriptionId]()
+            await cache.all().forEach { args in
                 let (id , _) = args
                 if subscriptions[id] != nil {
-                    cache.removeValue(forKey: id)
+                    toBeDeleted.append(id)
                 }
             }
+            await cache.remove(ids: toBeDeleted)
+            
             self.token = nil
             self.sendTokenOptions = nil
         }
@@ -43,12 +51,16 @@ extension Based {
         }
     }
     
+    
+    ///
+    /// - Parameter data:
     func logoutSubscriptions(_ data: [Int]) async {
         
         let subscriptions = await subscriptionManager.getSubscriptions()
+        var toBeDeletedCache = [SubscriptionId]()
         
         for id in data {
-            cache.removeValue(forKey: id)
+            toBeDeletedCache.append(id)
             var subscription = subscriptions[id]
             subscription?.error = BasedError.authorization(notAuthenticated: true, message: "Unauthorized request")
             if let subscription = subscription {
@@ -59,6 +71,8 @@ extension Based {
                 callback.onError?(BasedError.auth(token: token))
             })
         }
+        
+        await cache.remove(ids: toBeDeletedCache)
     }
 }
 

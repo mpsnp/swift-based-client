@@ -23,4 +23,8 @@ struct StubMessage: Message {
         let random = Int.random(in: 0..<types.count)
         return Self(id: UUID().hashValue, requestType: types[random], checksum: 0)
     }
+    
+    static func subscribeMessage() -> SubscribeMessage {
+        SubscribeMessage(id: UUID().hashValue, payload: nil, checksum: 0, requestMode: .sendDataBack, functionName: "name")
+    }
 }

@@ -8,6 +8,13 @@
 
 public typealias DataCallback = (_ data: Any, _ checksum: Int) -> ()
 public typealias ErrorCallback = (_ error: BasedError) -> ()
+public typealias InitialCallback = (
+    _ error: BasedError,
+    _ subscriptionId: SubscriptionId?,
+    _ subscriberId: SubscriberId?,
+    _ data: Any?
+) -> ()
+
 
 typealias DigestOptions = String
 
