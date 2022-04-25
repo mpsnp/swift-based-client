@@ -62,13 +62,18 @@ extension Based {
         for id in data {
             toBeDeletedCache.append(id)
             var subscription = subscriptions[id]
-            subscription?.error = BasedError.authorization(notAuthenticated: true, message: "Unauthorized request")
+            let error = BasedError
+                .authorization(
+                    message: "Unauthorized request",
+                    name: "observe \(subscription?.name ?? "")"
+                )
+            subscription?.error = error
             if let subscription = subscription {
                 await subscriptionManager.updateSubscription(with: id, subscription: subscription)
             }
             
             subscription?.subscribers.forEach({ (id, callback) in
-                callback.onError?(BasedError.auth(token: token))
+                callback.onError?(error)
             })
         }
         

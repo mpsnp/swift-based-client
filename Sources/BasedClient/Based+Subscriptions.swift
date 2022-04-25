@@ -276,8 +276,11 @@ extension Based {
         dataInfo("Checksum in. previous: \(String(describing: previousChecksum)). New \(String(describing: data.checksum)). Error: \(String(describing: data.error))")
         
         guard data.error == nil else {
-            if data.error?.auth == true {
-                subscription.error = .auth(token: token)
+            
+            let err = BasedError.from(data.error!)
+            
+            if let error = data.error, error.auth == true {
+                subscription.error = err
             }
             
             subscription.subscribers.forEach { subscriberId, callback in
@@ -286,7 +289,7 @@ extension Based {
                         await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
                     }
                 } else {
-                    callback.onError?(.auth(token: token))
+                    callback.onError?(err)
                 }
             }
             

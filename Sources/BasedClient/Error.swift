@@ -14,21 +14,20 @@
 
 public enum BasedError: Error {
     case
-        auth(token: String?),
         configuration(_ reason: String),
-        other(message: String?),
         validation(message: String?),
-        authorization(notAuthenticated: Bool, message: String?),
+        authorization(message: String, name: String?),
         functionNotExist(message: String?),
         missingToken(message: String?),
-        noValidURL(message: String?)
+        noValidURL(message: String?),
+        other(message: String?)
 }
 
 extension BasedError {
     static func from(_ errorObject: ErrorObject) -> Self {
         switch errorObject.type {
         case "AuthorizationError":
-            return .authorization(notAuthenticated: errorObject.auth ?? false, message: errorObject.message)
+            return .authorization(message: errorObject.message, name: errorObject.name)
         case "FunctionDoesNotExistError":
             return .functionNotExist(message: errorObject.message)
         default:
