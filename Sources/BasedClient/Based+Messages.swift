@@ -10,11 +10,12 @@ import Foundation
 extension Based {
     
     func addToMessages(_ message: Message) {
-        
-        Task { await messages.add(message) }
-
-        if socket.connected {
-            Task { await messageManager.sendAllMessages() }
+        Task {
+            await messages.add(message)
+            
+            if socket.connected {
+                await messageManager.sendAllMessages()
+            }
         }
     }
     

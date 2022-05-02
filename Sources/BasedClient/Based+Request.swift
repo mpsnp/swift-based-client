@@ -25,7 +25,10 @@ extension Based {
         requestIdCnt += 1
         let id = requestIdCnt
         
-        let cb = RequestCallback(resolve: { continuation.resume(returning: $0) }, reject: continuation.resume(throwing:))
+        let cb = RequestCallback(
+            resolve: continuation.resume(returning:),
+            reject: continuation.resume(throwing:)
+        )
         requestCallbacks[id] = cb
 
         if (type == .call) {

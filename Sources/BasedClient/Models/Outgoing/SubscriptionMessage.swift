@@ -14,14 +14,16 @@ import AnyCodable
 // 1 = send data back, do not make a subscription
 // 2 = allways send data back, make subscription
 enum RequestMode: Int, Codable {
-    case dontSendBack = 0, sendDataBack, sendDataBackWithSubscription
+    case dontSendBack = 0
+    case sendDataBack = 1
+    case sendDataBackWithSubscription = 2
 }
 
 protocol Message {
     var requestType: RequestType { get }
+    var id: Int { get }
     var checksum: Int? { get set }
     var codable: [AnyEncodable] { get }
-    var id: Int { get }
 }
 
 protocol SubscriptionMessage: Message {}
