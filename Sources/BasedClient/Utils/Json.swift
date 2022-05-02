@@ -1,278 +1,295 @@
-//
-//  Json.swift
-//  
-//
-//  Created by Alexander van der Werff on 27/09/2021.
-//
-
 import Foundation
 
-
-@dynamicMemberLookup
-enum JSON: Codable, CustomStringConvertible {
-    var description: String {
-        switch self {
-        case .string(let string): return "\"\(string)\""
-        case .number(let double):
-            if let int = Int(exactly: double) {
-                return "\(int)"
-            } else {
-                return "\(double)"
-            }
-        case .object(let object):
-            let keyValues = object
-                .map { (key, value) in "\"\(key)\": \(value)" }
-                .joined(separator: ",")
-            return "{\(keyValues)}"
-        case .array(let array):
-            return "\(array)"
-        case .bool(let bool):
-            return "\(bool)"
-        case .null:
-            return "null"
-        }
-    }
-
-    var isEmpty: Bool {
-        switch self {
-        case .string(let string): return string.isEmpty
-        case .object(let object): return object.isEmpty
-        case .array(let array): return array.isEmpty
-        case .null: return true
-        case .number, .bool: return false
-        }
-    }
-
-    struct Key: CodingKey, Hashable, CustomStringConvertible {
-        var description: String {
-            return stringValue
-        }
-
-        let stringValue: String
-        init(_ string: String) { self.stringValue = string }
-        init?(stringValue: String) { self.init(stringValue) }
-        var intValue: Int? { return nil }
-        init?(intValue: Int) { return nil }
-    }
-
-    case string(String)
-    case number(Double)
-    case object([Key: JSON])
-    case array([JSON])
-    case bool(Bool)
+/// Typesafe Json implementation, suitable in all places where you want to enforce compile-time check of data structure
+///
+/// - Warning: Use it only if Codable don't suite your needs
+public enum JSON: Equatable, Hashable {
     case null
-
-    static func object(_ key: String, _ value: JSON) -> Self {
-        .object([Key.init(key): value])
-    }
     
-    static func object(_ value: [String: JSON]) -> Self {
-        return .object(value.reduce(into: [Key: JSON]()) { partialResult, args in
-            let (key, value) = args
-            partialResult[Key(key)] = value
-        })
-    }
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case string(String)
     
-    static func array(_ ints: Int...) -> Self {
-        .array(ints.map { JSON.number(Double($0)) })
-    }
-    
-    static func from(string: String) -> JSON? {
-        guard let data = string.data(using: .utf8) else { return nil }
-        let decoder = JSONDecoder()
-        do {
-            let json = try decoder.decode(JSON.self, from: data)
-            return json
-
-        } catch {
-            return nil
-        }
-    }
-    
-    init(arrayLiteral elements: AnyHashable...) {
-        if let res = try? elements.map(JSON.init) {
-            self = .array(res)
-        } else {
-            self = .null
-        }
-    }
-    
-    init(from decoder: Decoder) throws {
-        if let string = try? decoder.singleValueContainer().decode(String.self) { self = .string(string) }
-        else if let number = try? decoder.singleValueContainer().decode(Double.self) { self = .number(number) }
-        else if let object = try? decoder.container(keyedBy: Key.self) {
-            var result: [Key: JSON] = [:]
-            for key in object.allKeys {
-                result[key] = (try? object.decode(JSON.self, forKey: key)) ?? .null
-            }
-            self = .object(result)
-        }
-        else if var array = try? decoder.unkeyedContainer() {
-            var result: [JSON] = []
-            for _ in 0..<(array.count ?? 0) {
-                result.append(try array.decode(JSON.self))
-            }
-            self = .array(result)
-        }
-        else if let bool = try? decoder.singleValueContainer().decode(Bool.self) { self = .bool(bool) }
-        else if let isNull = try? decoder.singleValueContainer().decodeNil(), isNull { self = .null }
-        else { throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [],
-                                                                       debugDescription: "Unknown JSON type")) }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        switch self {
-        case .string(let string):
-            var container = encoder.singleValueContainer()
-            try container.encode(string)
-        case .number(let number):
-            var container = encoder.singleValueContainer()
-            try container.encode(number)
-        case .bool(let bool):
-            var container = encoder.singleValueContainer()
-            try container.encode(bool)
-        case .object(let object):
-            var container = encoder.container(keyedBy: Key.self)
-            for (key, value) in object {
-                try container.encode(value, forKey: key)
-            }
-        case .array(let array):
-            var container = encoder.unkeyedContainer()
-            for value in array {
-                try container.encode(value)
-            }
-        case .null:
-            var container = encoder.singleValueContainer()
-            try container.encodeNil()
-        }
-    }
-    
-    func array<T>() -> [T]? {
-        anyValue as? [T]
-    }
-
-    var objectValue: [String: JSON]? {
-        switch self {
-        case .object(let object):
-            let mapped: [String: JSON] = Dictionary(uniqueKeysWithValues:
-                object.map { (key, value) in (key.stringValue, value) })
-            return mapped
-        default: return nil
-        }
-    }
-
-    var arrayValue: [JSON]? {
-        switch self {
-        case .array(let array): return array
-        default: return nil
-        }
-    }
-
-    subscript(key: String) -> JSON? {
-        guard let jsonKey = Key(stringValue: key),
-            case .object(let object) = self,
-            let value = object[jsonKey]
-            else { return nil }
-        return value
-    }
-
-    var stringValue: String? {
-        switch self {
-        case .string(let string): return string
-        default: return nil
-        }
-    }
-
-    var doubleValue: Double? {
-        switch self {
-        case .number(let number): return number
-        default: return nil
-        }
-    }
-
-    var intValue: Int? {
-        switch self {
-        case .number(let number): return Int(number)
-        default: return nil
-        }
-    }
-
-    subscript(index: Int) -> JSON? {
-        switch self {
-        case .array(let array): return array[index]
-        default: return nil
-        }
-    }
-
-    var boolValue: Bool? {
-        switch self {
-        case .bool(let bool): return bool
-        default: return nil
-        }
-    }
-
-    var anyValue: Any? {
-        switch self {
-        case .string(let string): return string
-        case .number(let number):
-            if let int = Int(exactly: number) { return int }
-            else { return number }
-        case .bool(let bool): return bool
-        case .object(let object):
-            return Dictionary(uniqueKeysWithValues:
-                object.compactMap { (key, value) -> (String, Any)? in
-                    if let nonNilValue = value.anyValue {
-                        return (key.stringValue, nonNilValue)
-                    } else { return nil }
-                })
-        case .array(let array):
-            return array.compactMap{ $0.anyValue }
-        case .null:
-            return nil
-        }
-    }
-
-    var dictionaryValue: [String: Any]? {
-        return anyValue as? [String: Any]
-    }
-    
-    subscript(dynamicMember member: String) -> JSON {
-        return self[member] ?? .null
-    }
+    case array([JSON])
+    case object([String: JSON])
 }
+
+// MARK: - Properties
 
 extension JSON {
-    init(_ value: Any) throws {
-        if let string = value as? String {
-            self = .string(string)
+    /// Is true if is null
+    public var isNull: Bool {
+        .null == self
+    }
+    
+    /// Extracts int from json, or overwrites it with int value
+    public var intValue: Int? {
+        get { if case let .int(value) = self { return value } else { return nil } }
+        set { self = newValue.map(JSON.int) ?? .null }
+    }
+    
+    /// Extracts double from json, or overwrites it with double value
+    public var doubleValue: Double? {
+        get { if case let .double(value) = self { return value } else { return nil } }
+        set { self = newValue.map(JSON.double) ?? .null }
+    }
+    
+    /// Extracts bool from json, or overwrites it with bool value
+    public var boolValue: Bool? {
+        get { if case let .bool(value) = self { return value } else { return nil } }
+        set { self = newValue.map(JSON.bool) ?? .null }
+    }
+    
+    /// Extracts string from json, or overwrites it with string value
+    public var stringValue: String? {
+        get { if case let .string(value) = self { return value } else { return nil } }
+        set { self = newValue.map(JSON.string) ?? .null }
+    }
+    
+    /// Extracts array from json, or overwrites it with new value
+    public var arrayValue: [JSON]? {
+        get { if case let .array(value) = self { return value } else { return nil } }
+        set { self = newValue.map(JSON.array) ?? .null }
+    }
+    
+    /// Extracts object from json, or overwrites it with new value
+    public var objectValue: [String: JSON]? {
+        get { if case let .object(value) = self { return value } else { return nil } }
+        set { self = newValue.map(JSON.object) ?? .null }
+    }
+    
+    /// If json is array, extracts value by index, as well as allows to overwrite value in array
+    public subscript(_ index: Int) -> JSON? {
+        get { if case let .array(value) = self { return value[index] } else { return nil } }
+        set {
+            guard case var .array(array) = self else { return }
+            array[index] = newValue ?? .null
+            self = .array(array)
         }
-        else if let bool = value as? Bool {
-            self = .bool(bool)
-        }
-        else if let number = value as? NSNumber {
-            self = .number(number.doubleValue)
-        }
-        else if let object = value as? [String: Any] {
-            var result: [Key: JSON] = [:]
-            for (key, subvalue) in object {
-                result[Key(key)] = try JSON(subvalue)
-            }
-            self = .object(result)
-        }
-        else if let array = value as? [Any] {
-            self = .array(try array.map(JSON.init))
-        }
-        else {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [],
-                                                                          debugDescription: "Cannot encode value"))
+    }
+    
+    /// If json is object, extracts value by key, as well as allows to overwrite value in object
+    public subscript(_ key: String) -> JSON? {
+        get { if case let .object(value) = self, let element = value[key] { return element } else { return nil } }
+        set {
+            guard case var .object(dictionary) = self else { return }
+            dictionary[key] = newValue ?? .null
+            self = .object(dictionary)
         }
     }
 }
 
-extension JSON: Equatable {}
+// MARK: - String representation
 
-extension JSONEncoder {
-    func stringEncode<T>(_ value: T) throws -> String where T : Encodable {
-        return String(data: try self.encode(value), encoding: .utf8)!
+extension JSON {
+    public enum JSONError: Swift.Error {
+        case serializationFailed(EncodingError)
+        case stringificationFailed
+        case failedToParse
+    }
+    
+    /// Allows to serialize json to raw data using provided encoder
+    /// - Parameter encoder: encoder to be used for serialization. Allows to serialize to all json-compatible text formats, such as yaml, toml, xml, etc. Just provide correct encoder.
+    /// - Returns: serialized data
+    public func toData(with encoder: JSONEncoder = .init()) throws -> Data {
+        return try encoder.encode(self)
+    }
+    
+    /// Allows to serialize json to string using provided encoder
+    /// - Parameter encoder: encoder to be used for serialization. Allows to jerialize to all json-compatible text formats, such as yaml, toml, xml, etc. Just provide correct encoder.
+    /// - Returns: serialized json string
+    public func toString(with encoder: JSONEncoder = .init()) throws -> String {
+        let resultData: Data
+        
+        do {
+            resultData = try toData(with: encoder)
+        } catch let error as EncodingError {
+            throw JSONError.serializationFailed(error)
+        }
+        
+        guard let stringData = String(data: resultData, encoding: .utf8) else {
+            throw JSONError.stringificationFailed
+        }
+        
+        return stringData
+    }
+}
+
+extension JSON: CustomStringConvertible {
+    /// Serialized json value
+    public var description: String {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            return try self.toString(with: encoder)
+        } catch {
+            return String(describing: error)
+        }
+    }
+}
+
+// MARK: - Conversion from/to unsafe
+
+extension JSON {
+    /// Allows to create typesafe json from any data structure
+    /// - Parameter jsonObject: object that's possibly a valid json
+    public init(_ jsonValue: Any) throws {
+        switch jsonValue {
+        case is NSNull:
+            self = .null
+        case let value as Int:
+            self = .int(value)
+        case let value as Double:
+            self = .double(value)
+        case let value as Bool:
+            self = .bool(value)
+        case let value as String:
+            self = .string(value)
+        case let value as [Any]:
+            self = try .array(value.map { try JSON($0) })
+        case let value as [String: Any]:
+            self = try .object(value.mapValues { try JSON($0) })
+        default:
+            throw JSONError.failedToParse
+        }
+    }
+    
+    /// Unsafe json object (objective c compatible)
+    public var asJsonValue: Any {
+        switch self {
+        case .null:
+            return NSNull()
+        case let .int(value):
+            return value
+        case let .double(value):
+            return value
+        case let .bool(value):
+            return value
+        case let .string(value):
+            return value
+        case let .array(array):
+            return array.map(\.asJsonValue)
+        case let .object(dictionary):
+            return dictionary.mapValues(\.asJsonValue)
+        }
+    }
+    
+    public var asJsonObject: [String: Any] {
+        guard let result = asJsonValue as? [String: Any] else {
+            fatalError("Json value is not an object")
+        }
+        return result
+    }
+    
+    public var asJsonArray: [Any] {
+        guard let result = asJsonValue as? [Any] else {
+            fatalError("Json value is not an array")
+        }
+        return result
+    }
+    
+    public func asJsonArray<Content>(of contentType: Content.Type) -> [Content] {
+        guard let result = asJsonValue as? [Content] else {
+            fatalError("Json value is not an array of type \([Content].self)")
+        }
+        return result
+    }
+}
+
+// MARK: - Codable
+
+extension JSON: Codable {
+    // Conformance to Codable is not as efficient as for struct DTOs, but it's enough for small use cases.
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        
+        switch self {
+        case .null:
+            try container.encodeNil()
+        case let .int(value):
+            try container.encode(value)
+        case let .double(value):
+            try container.encode(value)
+        case let .bool(value):
+            try container.encode(value)
+        case let .string(value):
+            try container.encode(value)
+        case let .array(array):
+            try container.encode(array)
+        case let .object(object):
+            try container.encode(object)
+        }
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try? container.decode(Bool.self) {
+            self = .bool(value)
+        } else if let value = try? container.decode(Int.self) {
+            self = .int(value)
+        } else if let value = try? container.decode(Double.self) {
+            self = .double(value)
+        } else if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let object = try? container.decode([String: JSON].self) {
+            self = .object(object)
+        } else if let array = try? container.decode([JSON].self) {
+            self = .array(array)
+        } else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(
+                codingPath: decoder.codingPath,
+                debugDescription: "Failed to decode any of supported json values",
+                underlyingError: nil
+            ))
+        }
+    }
+}
+
+// MARK: - Literal conformances
+
+extension JSON: ExpressibleByNilLiteral {
+    public init(nilLiteral: ()) {
+        self = .null
+    }
+}
+
+extension JSON: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self = .string(value)
+    }
+}
+
+extension JSON: ExpressibleByBooleanLiteral {
+    public init(booleanLiteral value: BooleanLiteralType) {
+        self = .bool(value)
+    }
+}
+
+extension JSON: ExpressibleByIntegerLiteral {
+    public init(integerLiteral value: Int) {
+        self = .int(value)
+    }
+}
+
+extension JSON: ExpressibleByFloatLiteral {
+    public init(floatLiteral value: Double) {
+        self = .double(value)
+    }
+}
+
+extension JSON: ExpressibleByArrayLiteral {
+    public init(arrayLiteral elements: JSON...) {
+        self = .array(elements)
+    }
+}
+
+extension JSON: ExpressibleByDictionaryLiteral {
+    public init(dictionaryLiteral elements: (String, JSON)...) {
+        self = .object(.init(uniqueKeysWithValues: elements))
     }
 }

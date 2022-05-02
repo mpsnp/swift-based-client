@@ -50,7 +50,9 @@ extension Hasher {
                     switch element {
                     case .string(let value):
                         f = "\(index):\(value)"
-                    case .number(let value):
+                    case .int(let value):
+                        f = "\(index):\(value)"
+                    case .double(let value):
                         f = "\(index):\(value)"
                     case .null:
                         f = "\(index):null"
@@ -89,7 +91,9 @@ extension Hasher {
                     switch field {
                     case .string(let value):
                         f = "\(key):\(value)"
-                    case .number(let value):
+                    case .int(let value):
+                        f = "\(key)n:\(value)"
+                    case .double(let value):
                         f = "\(key)n:\(value)"
                     case .null:
                         f = "\(key)v:null"
@@ -128,7 +132,9 @@ extension Hasher {
                 switch element {
                 case .string(let value):
                     f = "\(index):\(value)"
-                case .number(let value):
+                case .int(let value):
+                    f = "\(index):\(value)"
+                case .double(let value):
                     f = "\(index):\(value)"
                 case .null:
                     f = "\(index):null"

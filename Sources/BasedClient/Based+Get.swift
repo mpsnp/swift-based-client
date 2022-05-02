@@ -120,7 +120,7 @@ extension Based {
             if dontSend == false {
                 let message = SendSubscriptionGetDataMessage(
                     id: finalSubscriptionId,
-                    query: payload.dictionaryValue,
+                    query: payload.asJsonObject,
                     checksum: cache?.checksum,
                     customObservableFuncName: name
                 )

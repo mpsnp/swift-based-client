@@ -15,6 +15,6 @@ struct FunctionCallMessage: SubscriptionMessage {
     let payload: JSON?
     var checksum: Int?
     var codable: [AnyEncodable] {
-        [AnyEncodable(requestType.rawValue), AnyEncodable(name), AnyEncodable(id), AnyEncodable(payload?.anyValue)]
+        [AnyEncodable(requestType.rawValue), AnyEncodable(name), AnyEncodable(id), AnyEncodable(payload?.asJsonValue)]
     }
 }

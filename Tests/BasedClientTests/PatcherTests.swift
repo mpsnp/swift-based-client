@@ -19,7 +19,7 @@ final class PatcherTests: XCTestCase {
     func testObjectToArray() {
         let object = try! JSON(["0": 0, "1": 1, "2": 2, "3": 3])
         let patch = try! JSON([0, [0, 1, 2, 3, 4]])
-        let patched: [Int] = sut.applyPatch(object, patch)!.array()!
+        let patched: [Int] = sut.applyPatch(object, patch)!.asJsonArray(of: Int.self)
         XCTAssertEqual([0, 1, 2, 3, 4], patched)
     }
     
@@ -33,7 +33,7 @@ final class PatcherTests: XCTestCase {
             [2,[7,[0,"x","x"],[1,2,0],[0,"z"],[1,2,2]]]
         """)!
         
-        let patched: [String] = sut.applyPatch(a, patch)!.array()!
+        let patched: [String] = sut.applyPatch(a, patch)!.asJsonArray(of: String.self)
         XCTAssertEqual(["x", "x", "a", "b", "z", "c", "d"], patched)
     }
     
@@ -50,7 +50,7 @@ final class PatcherTests: XCTestCase {
             }
         """)!
         let expected = ["0": 0, "1": 1, "2": 2, "3": 3]
-        let patched = sut.applyPatch(a, patch)?.dictionaryValue! as! [String: Int]
+        let patched = sut.applyPatch(a, patch)?.asJsonObject as! [String: Int]
         XCTAssertEqual(expected, patched)
     }
     
@@ -302,8 +302,8 @@ final class PatcherTests: XCTestCase {
         
         bObjects[5] = JSON.object(["gurken": JSON.bool(true)])
         
-        let a = JSON.object("f", JSON.array(aObjects))
-        var b = JSON.object("f", JSON.array(bObjects))
+        let a: JSON = ["f": JSON.array(aObjects)]
+        var b: JSON = ["f": JSON.array(bObjects)]
         
 
         let patch: JSON = .from(string: #"{"f":[2,[20,[1,5,0],[2,5,{"gurken":[0,true],"x":[1],"y":[1],"cnt":[1],"kookiepants":[1]}],[1,14,6]]]}"#)!
@@ -325,7 +325,7 @@ final class PatcherTests: XCTestCase {
         let obj: JSON = .from(string: #"{"kookiepants": {"x": false,"y": {"g": {"myText": "yuzi pants"}}}}"#)!
         bObjects[10] = obj
         
-        b = JSON.object("f", JSON.array(bObjects))
+        b = ["f": JSON.array(bObjects)]
 
         let patched2 = sut.applyPatch(patched, patch2)!
         

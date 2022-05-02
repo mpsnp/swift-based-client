@@ -18,7 +18,7 @@ extension Based {
     
     private func _schema() async throws -> Data {
         try await withCheckedThrowingContinuation { continuation in
-            addRequest(type: .getConfiguration, payload: JSON.number(0), continuation: continuation, name: "")
+            addRequest(type: .getConfiguration, payload: 0, continuation: continuation, name: "")
         }
     }
     

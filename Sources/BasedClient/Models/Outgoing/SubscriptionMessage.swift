@@ -32,7 +32,7 @@ struct RequestMessage: Message {
     let payload: JSON?
     var checksum: Int? = nil
     var codable: [AnyEncodable] {
-        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(payload?.anyValue), AnyEncodable(checksum)]
+        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(payload?.asJsonValue), AnyEncodable(checksum)]
     }
 }
 
@@ -47,7 +47,7 @@ struct SubscribeMessage: SubscriptionMessage {
         [
             AnyEncodable(requestType.rawValue),
             AnyEncodable(id),
-            AnyEncodable(payload?.anyValue),
+            AnyEncodable(payload?.asJsonValue),
             AnyEncodable(checksum),
             AnyEncodable(requestMode),
             AnyEncodable(functionName)
