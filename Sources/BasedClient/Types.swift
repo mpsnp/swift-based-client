@@ -19,21 +19,21 @@ public typealias InitialCallback = (
 typealias DigestOptions = String
 
 enum RequestType: Int, Codable, CustomStringConvertible, CaseIterable {
-    case subscription = 1,
-    subscriptionDiff = 2,
-    sendSubscriptionData = 3,
-    unsubscribe = 4,
-    set = 5,
-    get = 6,
-    configuration = 7,
-    getConfiguration = 8,
-    call = 9,
-    getSubscription = 10,
-    delete = 11,
-    copy = 12,
-    digest = 13,
-    token = 14,
-    track = 15
+    case subscription = 1
+    case subscriptionDiff = 2
+    case sendSubscriptionData = 3
+    case unsubscribe = 4
+    case set = 5
+    case get = 6
+    case configuration = 7
+    case getConfiguration = 8
+    case call = 9
+    case getSubscription = 10
+    case delete = 11
+    case copy = 12
+    case digest = 13
+    case token = 14
+    case track = 15
     
     var description: String {
         return "\(self.rawValue)"
