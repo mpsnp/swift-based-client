@@ -51,7 +51,8 @@ struct SubscriptionCallback {
 }
 
 enum SubscriptionType {
-    case query(Query), `func`(_ name: String, _ payload: Any?)
+    case query(Query)
+    case function(_ name: String, _ payload: Any?)
     
     func generateSubscriptionId() -> Int {
         switch self {
@@ -59,7 +60,7 @@ enum SubscriptionType {
             if let json = try? JSON(query.dictionary()) {
                 return Current.hasher.hashObjectIgnoreKeyOrder(json)
             }
-        case let .func(name, payload):
+        case let .function(name, payload):
             if let payload = payload, let json = try? JSON(payload) {
                 return Current.hasher.hashObjectIgnoreKeyOrder(JSON.array([JSON.string(name), json]))
             }

@@ -47,7 +47,7 @@ public class Observable {
     }
     
     init(name: String, payload: Any?, based: Based) {
-        self.type = .func(name, payload)
+        self.type = .function(name, payload)
         self.based = based
         subscriptionId = type.generateSubscriptionId()
     }
@@ -63,7 +63,7 @@ public class Observable {
             if let p = try? JSON(query.dictionary()) {
                 payload = p
             }
-        case .func(let n, let pay):
+        case .function(let n, let pay):
             name = n
             if let pay = pay,  let p = try? JSON(pay) {
                 payload = p
