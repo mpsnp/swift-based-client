@@ -23,7 +23,7 @@ public final class Based {
             env: String? = nil,
             project: String? = nil,
             org: String? = nil,
-            cluster: String = "https://d3gdtpkyvlxeve.cloudfront.net",
+            cluster: String = "https://d15p61sp2f2oaj.cloudfront.net",
             name: String = "@based/hub",
             params: [String: String]? = nil) {
                 self.env = env
