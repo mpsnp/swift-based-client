@@ -7,6 +7,7 @@
 
 import Foundation
 import AnyCodable
+import NakedJson
 
 extension Based {
     
@@ -18,17 +19,17 @@ extension Based {
     
     private func _schema() async throws -> Data {
         try await withCheckedThrowingContinuation { continuation in
-            addRequest(type: .getConfiguration, payload: JSON.number(0), continuation: continuation, name: "")
+            addRequest(type: .getConfiguration, payload: 0, continuation: continuation, name: "")
         }
     }
     
-    public func configure(schema: [String: Any]) async throws -> Any {
-        let data = try await _configure(payload: JSON(["schema": schema]))
+    public func configure(schema: Json) async throws -> Any {
+        let data = try await _configure(payload: ["schema": schema])
         let schema = try decoder.decode(AnyDecodable.self, from: data)
         return schema.value
     }
     
-    private func _configure(payload: JSON) async throws -> Data {
+    private func _configure(payload: Json) async throws -> Data {
         try await withCheckedThrowingContinuation { continuation in
             addRequest(type: .configuration, payload: payload, continuation: continuation, name: "")
         }

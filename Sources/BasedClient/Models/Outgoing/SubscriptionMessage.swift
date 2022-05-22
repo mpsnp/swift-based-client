@@ -7,6 +7,7 @@
 
 import Foundation
 import AnyCodable
+import NakedJson
 
 // Outgoing data
 
@@ -29,17 +30,17 @@ protocol SubscriptionMessage: Message {}
 struct RequestMessage: Message {
     let requestType: RequestType
     let id: Int
-    let payload: JSON?
+    let payload: Json?
     var checksum: Int? = nil
     var codable: [AnyEncodable] {
-        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(payload?.anyValue), AnyEncodable(checksum)]
+        [AnyEncodable(requestType.rawValue), AnyEncodable(id), AnyEncodable(payload), AnyEncodable(checksum)]
     }
 }
 
 struct SubscribeMessage: SubscriptionMessage {
     var requestType: RequestType { .subscription }
     let id: Int
-    let payload: JSON?
+    let payload: Json?
     var checksum: Int?
     var requestMode: RequestMode?
     let functionName: String?
@@ -47,7 +48,7 @@ struct SubscribeMessage: SubscriptionMessage {
         [
             AnyEncodable(requestType.rawValue),
             AnyEncodable(id),
-            AnyEncodable(payload?.anyValue),
+            AnyEncodable(payload),
             AnyEncodable(checksum),
             AnyEncodable(requestMode),
             AnyEncodable(functionName)
@@ -67,7 +68,7 @@ struct SendSubscriptionDataMessage: SubscriptionMessage {
 struct SendSubscriptionGetDataMessage: SubscriptionMessage {
     var requestType: RequestType { .getSubscription }
     let id: Int
-    let query: [String: Any]?
+    let query: Json?
     var checksum: Int?
     let customObservableFuncName: String?
     var codable: [AnyEncodable] {

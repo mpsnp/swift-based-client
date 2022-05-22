@@ -7,6 +7,7 @@
 
 import Foundation
 import AnyCodable
+import NakedJson
 
 extension Based {
     
@@ -100,12 +101,12 @@ extension Based {
     ///   - payload: payload description
     ///   - name: name description
     /// - Returns: description
-    func generateSubscriptionId(payload: JSON, name: String?) -> Int {
+    func generateSubscriptionId(payload: Json, name: String?) -> Int {
         var array = [payload]
         if let name = name {
-            array.insert(JSON.string(name), at: 0)
+            array.insert(.string(name), at: 0)
         }
-        return Current.hasher.hashObjectIgnoreKeyOrder(JSON.array(array))
+        return Current.hasher.hashObjectIgnoreKeyOrder(.array(array))
     }
     
 
@@ -120,7 +121,7 @@ extension Based {
     ///   - name: name description
     /// - Returns: description
     func addSubscriber(
-        payload: JSON,
+        payload: Json,
         onData: @escaping DataCallback,
         onError: ErrorCallback?,
         subscriptionId: SubscriptionId?,
@@ -367,7 +368,7 @@ extension Based {
             var isCorrupt = false
             if
                 let value = cache?.value,
-                let json = try? decoder.decode(JSON.self, from: value),
+                let json = try? decoder.decode(Json.self, from: value),
                 let patched = Current.patcher.applyPatch(json, data.patchObject),
                 let encodedPatch = try? encoder.encode(patched) {
                 

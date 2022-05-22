@@ -6,13 +6,13 @@
 //
 
 import Foundation
+import NakedJson
 
 extension Based {
     
-    public func get<T: Decodable>(name: String, payload: Any = [:]) async throws -> T {
+    public func get<T: Decodable>(name: String, payload: Json = [:]) async throws -> T {
         try await withCheckedThrowingContinuation { [decoder] continuation in
             Task {
-                let payload = (try? JSON(payload)) ?? .null
                 await addGetSubscriber(payload: payload, onData: { data, checksum in
                     guard let data = data as? Data else {
                         continuation.resume(throwing: BasedError.other(message: "Could not decode to \(T.self)"))
@@ -38,13 +38,13 @@ extension Based {
     
     private func _get(query: Query) async throws -> Data {
         try await withCheckedThrowingContinuation { continuation in
-            let payload = (try? JSON(query.dictionary())) ?? .null
+            let payload = Json.object(query.dictionary())
             addRequest(type: .get, payload: payload, continuation: continuation, name: "")
         }
     }
     
     private func addGetSubscriber(
-        payload: JSON,
+        payload: Json,
         onData: @escaping DataCallback,
         onError: ErrorCallback?,
         subscriptionId: SubscriptionId?,
@@ -120,7 +120,7 @@ extension Based {
             if dontSend == false {
                 let message = SendSubscriptionGetDataMessage(
                     id: finalSubscriptionId,
-                    query: payload.dictionaryValue,
+                    query: payload,
                     checksum: cache?.checksum,
                     customObservableFuncName: name
                 )

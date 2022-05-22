@@ -7,7 +7,7 @@
 
 import Foundation
 import AnyCodable
-
+import NakedJson
 
 struct RequestCallback {
     let resolve: (Data) -> Void
@@ -18,7 +18,7 @@ extension Based {
     
     func addRequest(
         type: RequestType,
-        payload: JSON?,
+        payload: Json?,
         continuation: CheckedContinuation<Data, Error>,
         name: String
     ) {
@@ -36,11 +36,11 @@ extension Based {
     }
     
     
-    func incomingRequest(_ data: [AnyCodable]) {
+    func incomingRequest(_ data: [Json]) {
         dataInfo("\(data)")
         
         guard
-            let id = data[1].value as? Int,
+            let id = data[1].intValue,
             let cb = requestCallbacks[id],
             let jsonData = try? encoder.encode(data[2])
         else { dataInfo("No id for data message"); return }

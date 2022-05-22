@@ -9,6 +9,15 @@
           "revision": "b1a7a8a6186f2fcb28f7bda67cfc545de48b3c80",
           "version": "0.6.2"
         }
+      },
+      {
+        "package": "NakedJson",
+        "repositoryURL": "https://github.com/mpsnp/swift-naked-json",
+        "state": {
+          "branch": "master",
+          "revision": "711a400cc8b4fa79a9964aeb19da5537f814e388",
+          "version": null
+        }
       }
     ]
   },
