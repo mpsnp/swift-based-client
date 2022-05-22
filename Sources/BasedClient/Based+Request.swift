@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import AnyCodable
 import NakedJson
 
 struct RequestCallback {
@@ -18,7 +17,7 @@ extension Based {
     
     func addRequest(
         type: RequestType,
-        payload: Json?,
+        payload: Json = nil,
         continuation: CheckedContinuation<Data, Error>,
         name: String
     ) {

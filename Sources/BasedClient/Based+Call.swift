@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import AnyCodable
 import NakedJson
 
 extension Based {

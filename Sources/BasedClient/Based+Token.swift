@@ -6,8 +6,6 @@
 //
 
 import Foundation
-import AnyCodable
-
 
 extension Based {
     
@@ -38,10 +36,7 @@ extension Based {
             self.sendTokenOptions = nil
         }
         if socket.connected {
-            var message = [AnyCodable(RequestType.token.rawValue)]
-            if let token = token {
-                message = [AnyCodable(RequestType.token.rawValue), AnyCodable(token)]
-            }
+            let message = TokenMessage(token: token)
             let jsonData = try! JSONEncoder().encode(message)
             if let jsonString = String(data: jsonData, encoding: .utf8) {
                 socket.send(message: .string(jsonString))

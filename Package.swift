@@ -15,10 +15,6 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/Flight-School/AnyCodable",
-            from: "0.6.2"
-        ),
-        .package(
             url: "https://github.com/mpsnp/swift-naked-json",
             .branch("master")
         )
@@ -27,7 +23,6 @@ let package = Package(
         .target(
             name: "BasedClient",
             dependencies: [
-                "AnyCodable",
                 .product(name: "NakedJson", package: "swift-naked-json"),
             ]
         ),

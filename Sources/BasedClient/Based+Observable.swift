@@ -5,7 +5,6 @@
 //  Created by Alexander van der Werff on 07/12/2021.
 //
 
-import AnyCodable
 import NakedJson
 
 extension Based {

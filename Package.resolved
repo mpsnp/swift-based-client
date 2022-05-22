@@ -2,20 +2,11 @@
   "object": {
     "pins": [
       {
-        "package": "AnyCodable",
-        "repositoryURL": "https://github.com/Flight-School/AnyCodable",
-        "state": {
-          "branch": null,
-          "revision": "b1a7a8a6186f2fcb28f7bda67cfc545de48b3c80",
-          "version": "0.6.2"
-        }
-      },
-      {
         "package": "NakedJson",
         "repositoryURL": "https://github.com/mpsnp/swift-naked-json",
         "state": {
           "branch": "master",
-          "revision": "711a400cc8b4fa79a9964aeb19da5537f814e388",
+          "revision": "a847026b3a5f6cbc11786f0e6c220874f5eb222f",
           "version": null
         }
       }

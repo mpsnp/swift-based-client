@@ -6,16 +6,23 @@
 //
 
 import Foundation
-import AnyCodable
 import NakedJson
 
 struct FunctionCallMessage: SubscriptionMessage {
     var requestType: RequestType { .call }
     let id: Int
     let name: String
-    let payload: Json?
+    var payload: Json = nil
     var checksum: Int?
-    var codable: [AnyEncodable] {
-        [AnyEncodable(requestType.rawValue), AnyEncodable(name), AnyEncodable(id), AnyEncodable(payload)]
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        
+        try container.encode(requestType)
+        try container.encode(name)
+        try container.encode(id)
+        try container.encode(payload)
+//        ?????
+//        try container.encode(checksum)
     }
 }

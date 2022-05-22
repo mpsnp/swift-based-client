@@ -41,7 +41,7 @@ actor SubscriptionManager {
 
 struct SubscriptionModel {
     var error: BasedError?
-    var payload: Json?
+    var payload: Json = nil
     let name: String?
     var subscribers: Dictionary<SubscriberId, SubscriptionCallback> = [:]
 }
