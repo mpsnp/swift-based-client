@@ -14,23 +14,28 @@ let package = Package(
             targets: ["BasedClient"]),
     ],
     dependencies: [
-        .package(
-            url: "https://github.com/mpsnp/swift-naked-json",
-            .branch("master")
-        )
     ],
     targets: [
         .target(
+            name: "NakedJson"
+        ),
+        .testTarget(
+            name: "NakedJsonTests",
+            dependencies: [
+                "NakedJson",
+            ]
+        ),
+        .target(
             name: "BasedClient",
             dependencies: [
-                .product(name: "NakedJson", package: "swift-naked-json"),
+                .target(name: "NakedJson"),
             ]
         ),
         .testTarget(
             name: "BasedClientTests",
             dependencies: [
                 "BasedClient",
-                .product(name: "NakedJson", package: "swift-naked-json"),
+                .target(name: "NakedJson"),
             ]
         ),
     ]
