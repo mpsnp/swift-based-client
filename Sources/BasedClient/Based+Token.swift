@@ -23,13 +23,10 @@ extension Based {
             self.token = token
             self.sendTokenOptions = options
         } else {
-            var toBeDeleted = [SubscriptionId]()
-            await cache.all().forEach { args in
-                let (id , _) = args
-                if subscriptions[id] != nil {
-                    toBeDeleted.append(id)
-                }
-            }
+            let toBeDeleted = await cache.all()
+                .map { id, _ in id }
+                .filter { subscriptions[$0] != nil }
+            
             await cache.remove(ids: toBeDeleted)
             
             self.token = nil
@@ -78,6 +75,7 @@ extension Based {
 
 public struct SendTokenOptions {
     public let isBasedUser: Bool
+    
     public init(isBasedUser: Bool) {
         self.isBasedUser = isBasedUser
     }

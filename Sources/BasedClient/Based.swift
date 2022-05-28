@@ -121,15 +121,15 @@ extension Based: BasedWebSocketDelegate {
             await messages.removeSubscriptionMessages(with: .unsubscribe)
             await messages.removeSubscriptionMessages(with: .sendSubscriptionData)
         }
-        emitter.emit(type: "disconnect")
+        emitter.emit(type: .disconnect)
     }
     
     func onReconnect() {
-        emitter.emit(type: "reconnect")
+        emitter.emit(type: .reconnect)
     }
     
     func onOpen() {
-        emitter.emit(type: "connect")
+        emitter.emit(type: .connect)
         Task {
             await sendToken(token, sendTokenOptions)
             await sendAllSubscriptions()
