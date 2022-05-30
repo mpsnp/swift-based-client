@@ -63,7 +63,7 @@ extension Based {
             
             if let error = sub.error {
                 if beingAuth {
-                    onError?(error)
+                    await onError?(error)
                 } else {
                     await subscriptionManager
                         .addSubscriber(
@@ -72,7 +72,7 @@ extension Based {
                         )
                 }
             } else if let cache = cache {
-                onData(cache.value, cache.checksum)
+                await onData(cache.value, cache.checksum)
             } else {
                 await subscriptionManager
                     .addSubscriber(

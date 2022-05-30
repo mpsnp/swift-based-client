@@ -62,11 +62,11 @@ extension Based {
             subscription?.error = error
             if let subscription = subscription {
                 await subscriptionManager.updateSubscription(with: id, subscription: subscription)
-            }
             
-            subscription?.subscribers.forEach({ (id, callback) in
-                callback.onError?(error)
-            })
+                for (_, callback) in subscription.subscribers {
+                    await callback.onError?(error)
+                }
+            }
         }
         
         await cache.remove(ids: toBeDeletedCache)

@@ -259,7 +259,7 @@ extension Based {
             let subscription = await subscriptionManager.subscription(with: subscriptionId)
             else { return }
         
-        subscription.subscribers[subscriberId]?.onData?(cache.value, cache.checksum)
+        await subscription.subscribers[subscriberId]?.onData?(cache.value, cache.checksum)
         await subscriptionManager.updateSubscription(with: subscriptionId, subscription: subscription)
     }
     
@@ -275,21 +275,18 @@ extension Based {
         let previousChecksum = cache?.checksum
         dataInfo("Checksum in. previous: \(String(describing: previousChecksum)). New \(String(describing: data.checksum)). Error: \(String(describing: data.error))")
         
-        guard data.error == nil else {
+        if let error = data.error {
+            let err = BasedError.from(error)
             
-            let err = BasedError.from(data.error!)
-            
-            if let error = data.error, error.auth == true {
+            if error.auth == true {
                 subscription.error = err
             }
             
-            subscription.subscribers.forEach { subscriberId, callback in
+            for (subscriberId, callback) in subscription.subscribers {
                 if data.error?.auth != true {
-                    Task {
-                        await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
-                    }
+                    await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
                 } else {
-                    callback.onError?(err)
+                    await callback.onError?(err)
                 }
             }
             
@@ -317,19 +314,13 @@ extension Based {
                 await subscriptionManager.updateSubscription(with: data.id, subscription: subscription)
             }
             
-//            if let jsonData = try? JSON(data.data.value) {
-//                cache[data.id] = (jsonData, data.checksum ?? 0)
-//            }
-            
             await self.cache.store(data.id, data: (data.data, data.checksum ?? 0))
             
-            subscription.subscribers.forEach { subscriberId, callback in
+            for (subscriberId, callback) in subscription.subscribers {
                 if callback.onData == nil {
-                    Task {
-                        await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
-                    }
+                    await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
                 } else {
-                    callback.onData?(data.data, data.checksum ?? 0)
+                    await callback.onData?(data.data, data.checksum ?? 0)
                 }
             }
             
@@ -386,12 +377,12 @@ extension Based {
                 if let updatedCache = cache {
                     await self.cache.store(data.id, data: updatedCache)
                 }
-                subscription.subscribers.forEach { subscriberId, callback in
+                for (subscriberId, callback) in subscription.subscribers {
                     if callback.onData == nil {
-                        Task { await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId) }
+                        await removeSubscriber(subscriptionId: data.id, subscriberId: subscriberId)
                     }
                     if let checksum = cache?.checksum, let value = cache?.value {
-                        callback.onData?(value, checksum)
+                        await callback.onData?(value, checksum)
                     }
                 }
             } else {
