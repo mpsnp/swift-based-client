@@ -118,6 +118,8 @@ extension Based {
         }
         
         public func next() async throws -> Element? {
+            await subscribeIfNeeded()
+            
             return try await storage.wait().get()
         }
         
@@ -144,15 +146,15 @@ extension Based {
         }
     }
     
-    public func subscribe<Element: Decodable>(query: Query) -> BasedSequence<Element> {
+    public func subscribe<Element: Decodable>(query: Query, resultType: Element.Type = Element.self) -> BasedSequence<Element> {
         return BasedSequence(type: .query(query), based: self)
     }
     
-    public func subscribe<Element: Decodable>(name: String, payload: Json = [:]) -> BasedSequence<Element> {
+    public func subscribe<Element: Decodable>(name: String, payload: Json = [:], resultType: Element.Type = Element.self) -> BasedSequence<Element> {
         return BasedSequence(type: .func(name, payload), based: self)
     }
     
-    public func subscribe<Payload: Encodable, Element: Decodable>(name: String, payload: Payload) throws -> BasedSequence<Element> {
+    public func subscribe<Payload: Encodable, Element: Decodable>(name: String, payload: Payload, resultType: Element.Type = Element.self) throws -> BasedSequence<Element> {
         let encoder = NakedJsonEncoder()
         
         let jsonPayload = try encoder.encode(payload)
